@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+	<metadata>
+		<id>NetTopologySuite.IO.PostGis</id>
+		<version>$version$</version>
+		<title>NTS - Topology Suite - IO Libraries</title>
+		<authors>NetTopologySuite - Team</authors>
+		<owners>NetTopologySuite - Team</owners>
+		<licenseUrl>http://www.gnu.org/licenses/lgpl.html</licenseUrl>
+		<projectUrl>https://github.com/NetTopologySuite/NetTopologySuite</projectUrl>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<description>
+			This package contains several IO libraries to cope with spatial data from various sources.
+			Among others PostGIS, ShapeFile and MSSqlSpatial (not SqlServer2008!).
+		</description>
+		<summary>IO library for NetTopologySuite</summary>
+		<tags>NTS PostGis Shapefile</tags>
+		<language>en-US</language>
+		<frameworkAssemblies>
+			<frameworkAssembly assemblyName="System" targetFramework="net35-client,net40-client,net403-client,net45" />
+			<frameworkAssembly assemblyName="System.Core" targetFramework="net35-client,net40-client,net403-client,net45" />
+		</frameworkAssemblies>
+		<dependencies>
+			<dependency id="NetTopologySuite" version="$version$" />
+		</dependencies>
+	</metadata>
+	<files>
+		<file src="NetTopologySuite.IO\NetTopologySuite.IO.PostGis\**" exclude="NetTopologySuite.IO\NetTopologySuite.IO.PostGis\obj\**" target="src\NetTopologySuite.IO\NetTopologySuite.IO.PostGis" />
+
+		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.deps.json" target="lib" />
+		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.dll" target="lib" />
+		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.pdb" target="lib" />
+		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.xml" target="lib" />
+    
+	</files>
+</package>
