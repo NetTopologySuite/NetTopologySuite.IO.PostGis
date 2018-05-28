@@ -13,12 +13,12 @@
         {
             // NOTE: insert a valid connection string to a postgis db
             if (kvcc["PostGisConnectionString"] == null)
-                kvcc.Add("PostGisConnectionString", "Server=ivv-sqlt3.ivv-aachen.de;Port=5432;Database=obe;Integrated Security=SSPI;");            
+                kvcc.Add("PostGisConnectionString", "Host=ivv-t3s.ivv-aachen.de;Port=5432;Database=obe;Integrated Security=true;");            
         }
 
-        protected override void ReadAppConfigInternal(AppSettingsReader asr)
+        protected override void ReadAppConfigInternal(KeyValueConfigurationCollection kvcc)
         {
-            this.ConnectionString = (string)asr.GetValue("PostGisConnectionString", typeof(string));
+            this.ConnectionString = kvcc["PostGisConnectionString"].Value;
         }
 
         private string PostGisVersion()

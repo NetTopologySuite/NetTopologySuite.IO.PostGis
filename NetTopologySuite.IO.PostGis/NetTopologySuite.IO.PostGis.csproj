@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="GeoAPI" Version="$(GeoAPIPackageReferenceVersion)" />
-    <PackageReference Include="NetTopologySuite" Version="1.15.0-pre032" />
+    <PackageReference Include="NetTopologySuite" Version="1.15.0-pre069" />
   </ItemGroup>
 
 </Project>

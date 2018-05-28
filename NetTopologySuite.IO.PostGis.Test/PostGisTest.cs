@@ -108,6 +108,12 @@ namespace NetTopologySuite.IO.PostGis.Test
         private static readonly PostGisReader br = new PostGisReader();
         private static readonly WKTReader wr = new WKTReader();
 
+        [OneTimeSetUp]
+        public void TestFixtureSetup()
+        {
+            GeoAPI.GeometryServiceProvider.Instance = NtsGeometryServices.Instance;
+        }
+
         /// <summary>
         /// 
         /// </summary>
