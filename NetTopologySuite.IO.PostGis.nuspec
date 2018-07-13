@@ -20,7 +20,7 @@
 			<frameworkAssembly assemblyName="System.Core" targetFramework="net35-client,net40-client,net403-client,net45" />
 		</frameworkAssemblies>
 		<dependencies>
-			<dependency id="NetTopologySuite" version="$version$" />
+			<dependency id="NetTopologySuite.Core" version="$version$" />
 		</dependencies>
 	</metadata>
 	<files>
