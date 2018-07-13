@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Configuration;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using GeoAPI.Geometries;
 using NetTopologySuite.Geometries;
@@ -33,6 +34,7 @@ namespace NetTopologySuite.IO.PostGis.Tests
         {
             try
             {
+                GeoAPI.GeometryServiceProvider.Instance = NtsGeometryServices.Instance;
                 CheckAppConfigPresent();
                 CreateTestStore();
             }
@@ -47,27 +49,27 @@ namespace NetTopologySuite.IO.PostGis.Tests
 
         private void CheckAppConfigPresent()
         {
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetTopologySuite.IO.Tests.dll.config");
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetTopologySuite.IO.PostGis.Test.dll");
             if (!File.Exists(path))
-                CreateAppConfig();
-            UpdateAppConfig();
-            ReadAppConfig();
+                CreateAppConfig(path);
+            UpdateAppConfig(path);
+            ReadAppConfig(path);
         }
 
-        private void UpdateAppConfig()
+        private void UpdateAppConfig(string path)
         {
-            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            Configuration config = ConfigurationManager.OpenExeConfiguration(path);
 
             KeyValueConfigurationCollection appSettings = config.AppSettings.Settings;
             AddAppConfigSpecificItems(appSettings);
-            config.Save(ConfigurationSaveMode.Full);
+            config.Save(ConfigurationSaveMode.Modified);
             ConfigurationManager.RefreshSection("appSettings");
 
         }
 
-        private void CreateAppConfig()
+        private void CreateAppConfig(string path)
         {
-            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            Configuration config = ConfigurationManager.OpenExeConfiguration(path);
 
             KeyValueConfigurationCollection appSettings = config.AppSettings.Settings;
 
@@ -85,26 +87,28 @@ namespace NetTopologySuite.IO.PostGis.Tests
 
         protected abstract void AddAppConfigSpecificItems(KeyValueConfigurationCollection kvcc);
 
-        private void ReadAppConfig()
+        private void ReadAppConfig(string path)
         {
-            AppSettingsReader asr = new AppSettingsReader();
-            SRID = (int)asr.GetValue("Srid", typeof(int));
-            string pm = (string) asr.GetValue("PrecisionModel", typeof (string));
+            Configuration config = ConfigurationManager.OpenExeConfiguration(path);
+            var kvcc = config.AppSettings.Settings;
+            SRID = int.Parse(kvcc["Srid"].Value);
+            string pm = kvcc["PrecisionModel"].Value;
             int scale;
             PrecisionModel = int.TryParse(pm, out scale) 
                 ? new PrecisionModel(scale) 
                 : new PrecisionModel((PrecisionModels)Enum.Parse(typeof(PrecisionModels), pm));
-            MinX = (double)asr.GetValue("MinX", typeof(double));
-            MaxX = (double)asr.GetValue("MaxX", typeof(double));
-            MinY = (double)asr.GetValue("MinY", typeof(double));
-            MaxY = (double)asr.GetValue("MaxY", typeof(double));
-            string ordinatesString = (string)asr.GetValue("Ordinates", typeof(string));
+            MinX = double.Parse(kvcc["MinX"].Value, NumberFormatInfo.InvariantInfo);
+            MaxX = double.Parse(kvcc["MaxX"].Value, NumberFormatInfo.InvariantInfo);
+            MinY = double.Parse(kvcc["MinY"].Value, NumberFormatInfo.InvariantInfo);
+            MaxY = double.Parse(kvcc["MaxY"].Value, NumberFormatInfo.InvariantInfo);
+            string ordinatesString = kvcc["Ordinates"].Value;
             Ordinates ordinates = (Ordinates)Enum.Parse(typeof(Ordinates), ordinatesString);
             RandomGeometryHelper.Ordinates = ordinates;
-            ReadAppConfigInternal(asr);
+
+            ReadAppConfigInternal(kvcc);
         }
 
-        protected virtual void ReadAppConfigInternal(AppSettingsReader asr) { }
+        protected virtual void ReadAppConfigInternal(KeyValueConfigurationCollection kvcc) { }
 
         public string ConnectionString { get; protected set; }
 
@@ -260,5 +264,34 @@ namespace NetTopologySuite.IO.PostGis.Tests
             for (int i = 0; i < 5; i++)
                 PerformTest(RandomGeometryHelper.GeometryCollection);
         }        
+    }
+
+    public class PostGisSettings 
+    {
+        public string ConnectionString { get; set; }
+
+        public string PrecisionModel { get; set; }
+
+        public Ordinates Ordinates { get; set; } = Ordinates.XY;
+
+        public double MinX { get; set; } = -180;
+
+        public double MaxX { get; set; } = 180;
+
+        public double MinY { get; set; } = -90;
+
+        public double MaxY { get; set; } = 90;
+
+        public int Srid { get; set; } = 4326;
+        /*
+                     appSettings.Add("PrecisionModel", "Floating");
+                    appSettings.Add("Ordinates", "XY");
+                    appSettings.Add("MinX", "-180");
+                    appSettings.Add("MaxX", "180");
+                    appSettings.Add("MinY", "-90");
+                    appSettings.Add("MaxY", "90");
+                    appSettings.Add("Srid", "4326");
+
+         */
     }
 }
