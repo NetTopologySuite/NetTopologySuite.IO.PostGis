@@ -24,7 +24,7 @@
 		</dependencies>
 	</metadata>
 	<files>
-		<file src="NetTopologySuite.IO\NetTopologySuite.IO.PostGis\**" exclude="NetTopologySuite.IO\NetTopologySuite.IO.PostGis\obj\**" target="src\NetTopologySuite.IO\NetTopologySuite.IO.PostGis" />
+		<file src="NetTopologySuite.IO.PostGis\**" exclude="NetTopologySuite.IO.PostGis\obj\**" target="src\NetTopologySuite.IO.PostGis" />
 
 		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.deps.json" target="lib" />
 		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.dll" target="lib" />
