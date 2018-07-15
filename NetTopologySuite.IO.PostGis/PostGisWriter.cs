@@ -15,24 +15,20 @@ namespace NetTopologySuite.IO
     /// </summary>
     public class PostGisWriter : IBinaryGeometryWriter
     {
+        /// <summary>
+        /// The byte order to use when writing geometries.
+        /// </summary>
+        /// <see cref="ByteOrder"/>
         protected ByteOrder EncodingType;
+
         private Ordinates _outputOrdinates;
-        
-        public  Ordinates HandleOrdinates
-        {
-            get { return _outputOrdinates; }
-            set
-            {
-                value |= Ordinates.XY;
-                _outputOrdinates = value & AllowedOrdinates;
-            }
-        }
 
         /// <summary>
         /// Initializes writer with LittleIndian byte order.
         /// </summary>
-        public PostGisWriter() : 
-            this(ByteOrder.LittleEndian) { }
+        public PostGisWriter() :
+            this(ByteOrder.LittleEndian)
+        { }
 
         /// <summary>
         /// Initializes writer with the specified byte order.
@@ -44,16 +40,13 @@ namespace NetTopologySuite.IO
             HandleOrdinates = Ordinates.None;
         }
 
-        /// <summary>
-        /// Writes a binary encoded PostGIS of a given geometry.
-        /// </summary>
-        /// <param name="geometry"></param>
-        /// <returns></returns>
+        /// <inheritdoc cref="IGeometryWriter{TSink}.Write(IGeometry)"/>
         public byte[] Write(IGeometry geometry)
         {
             return Write(geometry, HandleOrdinates);
         }
 
+        /// <inheritdoc cref="IGeometryWriter{TSink}.Write(IGeometry, Stream)"/>
         public void Write(IGeometry geometry, Stream stream)
         {
             Write(geometry, HandleOrdinates, stream);
@@ -67,10 +60,10 @@ namespace NetTopologySuite.IO
         /// <returns>An array of bytes.</returns>
         private byte[] Write(IGeometry geometry, Ordinates ordinates)
         {
-            var coordinateSpace = 8*OrdinatesUtility.OrdinatesToDimension(ordinates);
-            var bytes = GetBytes(geometry, coordinateSpace);
+            int coordinateSpace = 8 * OrdinatesUtility.OrdinatesToDimension(ordinates);
+            byte[] bytes = GetBytes(geometry, coordinateSpace);
             Write(geometry, ordinates, new MemoryStream(bytes));
-            
+
             return bytes;
         }
 
@@ -84,7 +77,7 @@ namespace NetTopologySuite.IO
         /// <param name="stream">The stream to write to</param>
         private void Write(IGeometry geometry, Ordinates ordinates, Stream stream)
         {
-            using (BinaryWriter writer = EncodingType == ByteOrder.LittleEndian ? new BinaryWriter(stream) : new BEBinaryWriter(stream))
+            using (var writer = EncodingType == ByteOrder.LittleEndian ? new BinaryWriter(stream) : new BEBinaryWriter(stream))
             {
                 Write(geometry, ordinates, EncodingType, writer);
             }
@@ -111,12 +104,12 @@ namespace NetTopologySuite.IO
         {
             if (ordinates == Ordinates.None)
                 ordinates = CheckOrdinates(geometry);
-            
+
             if (geometry is IPoint)
                 Write(geometry as IPoint, ordinates, byteOrder, writer);
-			else if (geometry is ILinearRing)
+            else if (geometry is ILinearRing)
                 Write(geometry as ILinearRing, ordinates, byteOrder, writer);
-			else if (geometry is ILineString)
+            else if (geometry is ILineString)
                 Write(geometry as ILineString, ordinates, byteOrder, writer);
             else if (geometry is IPolygon)
                 Write(geometry as IPolygon, ordinates, byteOrder, writer);
@@ -140,49 +133,49 @@ namespace NetTopologySuite.IO
         /// <param name="ordinates"></param>
         /// <param name="writer">The writer to use.</param>
         private static void WriteHeader(PostGisGeometryType type, int srid, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
-		{
-            writer.Write((byte) byteOrder);
+        {
+            writer.Write((byte)byteOrder);
 
-			// write typeword
-			var typeword = (uint) type;
+            // write typeword
+            uint typeword = (uint)type;
 
             if ((ordinates & Ordinates.Z) != 0)
                 typeword |= 0x80000000;
 
             if ((ordinates & Ordinates.M) != 0)
-			    typeword |= 0x40000000;
+                typeword |= 0x40000000;
 
             if (srid != -1)
-				typeword |= 0x20000000;
-			writer.Write(typeword);
+                typeword |= 0x20000000;
+            writer.Write(typeword);
 
             if (srid != -1)
-                writer.Write(srid);			
-		}
+                writer.Write(srid);
+        }
 
         private static void Write(ICoordinateSequence sequence, Ordinates ordinates, BinaryWriter writer, bool justOne)
         {
             if (sequence == null || sequence.Count == 0)
                 return;
 
-            var length = (justOne ? 1 : sequence.Count);
-            
-            if (!justOne) 
+            int length = (justOne ? 1 : sequence.Count);
+
+            if (!justOne)
                 writer.Write(length);
-            
-            for (var i = 0; i < length; i++)
+
+            for (int i = 0; i < length; i++)
             {
                 writer.Write(sequence.GetOrdinate(i, Ordinate.X));
                 writer.Write(sequence.GetOrdinate(i, Ordinate.Y));
                 if ((ordinates & Ordinates.Z) != 0)
                 {
-                    var z = sequence.GetOrdinate(i, Ordinate.Z);
+                    double z = sequence.GetOrdinate(i, Ordinate.Z);
                     if (double.IsNaN(z)) z = 0d;
                     writer.Write(z);
                 }
                 if ((ordinates & Ordinates.M) != 0)
                 {
-                    var m = sequence.GetOrdinate(i, Ordinate.M);
+                    double m = sequence.GetOrdinate(i, Ordinate.M);
                     if (double.IsNaN(m)) m = 0d;
                     writer.Write(m);
                 }
@@ -210,12 +203,12 @@ namespace NetTopologySuite.IO
         /// <param name="byteOrder"></param>
         /// <param name="writer"></param>
         private void Write(IList<IGeometry> geometries, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
-		{
-			for (var i = 0; i < geometries.Count; i++)
-			{
+        {
+            for (int i = 0; i < geometries.Count; i++)
+            {
                 Write(geometries[i], ordinates, byteOrder, writer);
-			}
-		}
+            }
+        }
 
         /// <summary>
         /// 
@@ -226,8 +219,8 @@ namespace NetTopologySuite.IO
         /// <param name="writer"></param>
         private void Write(ILineString lineString, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
-			WriteHeader(PostGisGeometryType.LineString, HandleSRID ? lineString.SRID : -1, ordinates, byteOrder, writer);
-			Write(lineString.CoordinateSequence, ordinates, writer, false);
+            WriteHeader(PostGisGeometryType.LineString, HandleSRID ? lineString.SRID : -1, ordinates, byteOrder, writer);
+            Write(lineString.CoordinateSequence, ordinates, writer, false);
         }
 
         /// <summary>
@@ -238,8 +231,8 @@ namespace NetTopologySuite.IO
         /// <param name="writer"></param>
         private void Write(ILinearRing linearRing, Ordinates ordinates, BinaryWriter writer)
         {
-			Write(linearRing.CoordinateSequence, ordinates, writer, false);
-		}
+            Write(linearRing.CoordinateSequence, ordinates, writer, false);
+        }
 
         /// <summary>
         /// Writes a 'Polygon' to the stream.
@@ -250,12 +243,12 @@ namespace NetTopologySuite.IO
         /// <param name="writer">The writer to use.</param>
         private void Write(IPolygon polygon, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.Polygon, 
-                HandleSRID ? polygon.SRID : -1, 
+            WriteHeader(PostGisGeometryType.Polygon,
+                HandleSRID ? polygon.SRID : -1,
                 ordinates, byteOrder, writer);
             writer.Write(polygon.NumInteriorRings + 1);
             Write(polygon.ExteriorRing as ILinearRing, ordinates, writer);
-            for (var i = 0; i < polygon.NumInteriorRings; i++)
+            for (int i = 0; i < polygon.NumInteriorRings; i++)
                 Write((ILinearRing)polygon.InteriorRings[i], ordinates, writer);
         }
 
@@ -268,12 +261,12 @@ namespace NetTopologySuite.IO
         /// <param name="writer">The writer to use.</param>
         private void Write(IMultiPoint multiPoint, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.MultiPoint, 
-                HandleSRID ? multiPoint.SRID : -1, 
+            WriteHeader(PostGisGeometryType.MultiPoint,
+                HandleSRID ? multiPoint.SRID : -1,
                 ordinates, byteOrder, writer);
-			writer.Write(multiPoint.NumGeometries);
+            writer.Write(multiPoint.NumGeometries);
             Write(multiPoint.Geometries, ordinates, byteOrder, writer);
-		}
+        }
 
         /// <summary>
         /// Writes a 'MultiLineString' to the stream.
@@ -285,8 +278,8 @@ namespace NetTopologySuite.IO
         private void Write(IMultiLineString multiLineString, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
             WriteHeader(PostGisGeometryType.MultiLineString, HandleSRID ? multiLineString.SRID : -1, ordinates, byteOrder, writer);
-			writer.Write(multiLineString.NumGeometries);
-			Write(multiLineString.Geometries, ordinates, byteOrder, writer);
+            writer.Write(multiLineString.NumGeometries);
+            Write(multiLineString.Geometries, ordinates, byteOrder, writer);
         }
 
         /// <summary>
@@ -299,7 +292,7 @@ namespace NetTopologySuite.IO
         private void Write(IMultiPolygon multiPolygon, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
             WriteHeader(PostGisGeometryType.MultiPolygon, HandleSRID ? multiPolygon.SRID : -1, ordinates, byteOrder, writer);
-			writer.Write(multiPolygon.NumGeometries);
+            writer.Write(multiPolygon.NumGeometries);
             Write(multiPolygon.Geometries, ordinates, byteOrder, writer);
         }
 
@@ -312,8 +305,8 @@ namespace NetTopologySuite.IO
         /// <param name="writer">The writer to use.</param>
         private void Write(IGeometryCollection geomCollection, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.GeometryCollection, HandleSRID ? geomCollection.SRID  :- 1, ordinates, byteOrder, writer);
-			writer.Write(geomCollection.NumGeometries);
+            WriteHeader(PostGisGeometryType.GeometryCollection, HandleSRID ? geomCollection.SRID : -1, ordinates, byteOrder, writer);
+            writer.Write(geomCollection.NumGeometries);
             Write(geomCollection.Geometries, ordinates, byteOrder, writer);
         }
 
@@ -325,9 +318,9 @@ namespace NetTopologySuite.IO
         /// <param name="coordinateSpace">The size that is needed per ordinate.</param>
         /// <returns></returns>
         private byte[] GetBytes(IGeometry geometry, int coordinateSpace)
-		{
+        {
             return new byte[GetByteStreamSize(geometry, coordinateSpace)];
-		}
+        }
 
         /// <summary>
         /// Gets the required size for the byte stream's buffer to hold the geometry information.
@@ -337,18 +330,18 @@ namespace NetTopologySuite.IO
         /// <returns>The size</returns>
         private int GetByteStreamSize(IGeometry geometry, int coordinateSpace)
         {
-			int result = 0;
+            int result = 0;
 
-			// write endian flag
-			result += 1;
+            // write endian flag
+            result += 1;
 
-			// write typeword
-			result += 4;
+            // write typeword
+            result += 4;
 
-			if (HandleSRID & (geometry.SRID != -1))
-				result += 4;
-			
-			if (geometry is IPoint)
+            if (HandleSRID & (geometry.SRID != -1))
+                result += 4;
+
+            if (geometry is IPoint)
                 result += GetByteStreamSize(geometry as IPoint, coordinateSpace);
             else if (geometry is ILineString)
                 result += GetByteStreamSize(geometry as ILineString, coordinateSpace);
@@ -362,10 +355,10 @@ namespace NetTopologySuite.IO
                 result += GetByteStreamSize(geometry as IMultiPolygon, coordinateSpace);
             else if (geometry is IGeometryCollection)
                 result += GetByteStreamSize(geometry as IGeometryCollection, coordinateSpace);
-            else 
+            else
                 throw new ArgumentException("ShouldNeverReachHere");
 
-			return result;
+            return result;
         }
 
         /// <summary>
@@ -376,9 +369,9 @@ namespace NetTopologySuite.IO
         /// <returns></returns>
         private int GetByteStreamSize(IGeometryCollection geometry, int coordinateSpace)
         {
-			// 4-byte count + subgeometries
+            // 4-byte count + subgeometries
             return 4 + GetByteStreamSize(geometry.Geometries, coordinateSpace);
-		}
+        }
 
         /// <summary>
         /// 
@@ -388,9 +381,9 @@ namespace NetTopologySuite.IO
         /// <returns></returns>
         private int GetByteStreamSize(IMultiPolygon geometry, int coordinateSpace)
         {
-			// 4-byte count + subgeometries
+            // 4-byte count + subgeometries
             return 4 + GetByteStreamSize(geometry.Geometries, coordinateSpace);
-		}
+        }
 
         /// <summary>
         /// 
@@ -400,9 +393,9 @@ namespace NetTopologySuite.IO
         /// <returns></returns>
         private int GetByteStreamSize(IMultiLineString geometry, int coordinateSpace)
         {
-			// 4-byte count + subgeometries
+            // 4-byte count + subgeometries
             return 4 + GetByteStreamSize(geometry.Geometries, coordinateSpace);
-		}
+        }
 
         /// <summary>
         /// 
@@ -412,15 +405,15 @@ namespace NetTopologySuite.IO
         /// <returns></returns>
         private int GetByteStreamSize(IMultiPoint geometry, int coordinateSpace)
         {
-			// int size
-			var result = 4;
-			if (geometry.NumPoints > 0)
-			{
-				// We can shortcut here, as all subgeoms have the same fixed size
+            // int size
+            int result = 4;
+            if (geometry.NumPoints > 0)
+            {
+                // We can shortcut here, as all subgeoms have the same fixed size
                 result += geometry.NumPoints * GetByteStreamSize(geometry.GetGeometryN(0), coordinateSpace);
-			}
-			return result;
-		}
+            }
+            return result;
+        }
 
         /// <summary>
         /// 
@@ -430,29 +423,29 @@ namespace NetTopologySuite.IO
         /// <returns></returns>
         private int GetByteStreamSize(IPolygon geometry, int coordinateSpace)
         {
-			// int length
-			var result = 4;
+            // int length
+            int result = 4;
             result += GetByteStreamSize(geometry.ExteriorRing, coordinateSpace);
-			for (var i = 0; i < geometry.NumInteriorRings; i++)
+            for (int i = 0; i < geometry.NumInteriorRings; i++)
                 result += GetByteStreamSize(geometry.InteriorRings[i], coordinateSpace);
-			return result;
+            return result;
         }
 
-		/// <summary>
+        /// <summary>
         /// Write an Array of "full" Geometries
-		/// </summary>
-		/// <param name="container"></param>
+        /// </summary>
+        /// <param name="container"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
         /// <returns></returns>
         private int GetByteStreamSize(IList<IGeometry> container, int coordinateSpace)
-		{
-			var result = 0;
-			for (var i = 0; i < container.Count; i++)
-			{
-			    result += GetByteStreamSize(container[i], coordinateSpace);
-			}
-			return result;
-		}
+        {
+            int result = 0;
+            for (int i = 0; i < container.Count; i++)
+            {
+                result += GetByteStreamSize(container[i], coordinateSpace);
+            }
+            return result;
+        }
 
         /// <summary>
         /// Calculates the amount of space needed to write this coordinate sequence.
@@ -461,17 +454,17 @@ namespace NetTopologySuite.IO
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
         /// <returns></returns>
         private static int GetByteStreamSize(ICoordinateSequence sequence, int coordinateSpace)
-		{
-			// number of points
-			const int result = 4;
+        {
+            // number of points
+            const int result = 4;
 
             // And the amount of the points itsself, in consistent geometries
-			// all points have equal size.
+            // all points have equal size.
             if (sequence.Count == 0)
                 return result;
 
             return result + sequence.Count * coordinateSpace;
-		}
+        }
 
         /// <summary>
         /// 
@@ -484,16 +477,16 @@ namespace NetTopologySuite.IO
             return GetByteStreamSize(geometry.CoordinateSequence, coordinateSpace);
         }
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="geometry"></param>
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="geometry"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
         /// <returns></returns>
         protected int GetByteStreamSize(ILinearRing geometry, int coordinateSpace)
-		{
+        {
             return GetByteStreamSize(geometry.CoordinateSequence, coordinateSpace);
-		}
+        }
 
         /// <summary>
         /// 
@@ -504,7 +497,7 @@ namespace NetTopologySuite.IO
         protected int GetByteStreamSize(IPoint geometry, int coordinateSpace)
         {
             return coordinateSpace;
-		}
+        }
 
         #endregion
 
@@ -534,12 +527,12 @@ namespace NetTopologySuite.IO
             var result = Ordinates.XY;
             if ((sequence.Ordinates & Ordinates.Z) != 0)
             {
-                if (!Double.IsNaN(sequence.GetOrdinate(0, Ordinate.Z)))
+                if (!double.IsNaN(sequence.GetOrdinate(0, Ordinate.Z)))
                     result |= Ordinates.Z;
             }
             if ((sequence.Ordinates & Ordinates.M) != 0)
             {
-                if (!Double.IsNaN(sequence.GetOrdinate(0, Ordinate.M)))
+                if (!double.IsNaN(sequence.GetOrdinate(0, Ordinate.M)))
                     result |= Ordinates.Z;
             }
             return result;
@@ -547,67 +540,33 @@ namespace NetTopologySuite.IO
 
         #endregion
 
-        #region obsolete code
+        #region Implementation of IGeometryIOSettings
 
-        ///// <summary>
-        ///// Tests if a coordinate sequence supplies values for an ordinate.
-        ///// </summary>
-        ///// <param name="geometry">The geometry sequence to test.</param>
-        ///// <param name="ordinate">The ordinate to test for.</param>
-        ///// <returns><value>true</value> if the ordinate is supplied by the geometry's coordinates.</returns>
-        //private static bool HasOrdinate(IGeometry geometry, Ordinate ordinate)
-        //{
-        //    if (geometry.IsEmpty)
-        //        return false;
-
-        //    if (geometry is IPoint)
-        //        return HasOrdinate((geometry as IPoint).CoordinateSequence, ordinate);
-        //    if (geometry is ILineString)
-        //        return HasOrdinate((geometry as ILineString).CoordinateSequence, ordinate);
-        //    if (geometry is IPolygon)
-        //        return HasOrdinate((geometry as IPolygon).ExteriorRing.CoordinateSequence, ordinate);
-        //    return HasOrdinate(geometry.GetGeometryN(0), ordinate);
-        //}
-
-        ///// <summary>
-        ///// Tests if a coordinate sequence supplies values for an ordinate.
-        ///// </summary>
-        ///// <param name="sequence">The coordinate sequence to test.</param>
-        ///// <param name="ordinate">The ordinate to test for.</param>
-        ///// <returns><value>true</value> if the ordinate is supplied by the sequence.</returns>
-        //private static bool HasOrdinate(ICoordinateSequence sequence, Ordinate ordinate)
-        //{
-        //    if (sequence == null || sequence.Count == 0)
-        //        return false;
-
-        //    if (ordinate < Ordinate.Z)
-        //        return true;
-
-        //    var ordinateFlag = (Ordinates) (1 << (int) ordinate);
-        //    var ordinates = sequence.Ordinates;
-        //    if ((ordinates & ordinateFlag) == Ordinates.M)
-        //    {
-        //        // CoordinateArraySequence will always return 3, so we have to
-        //        // check, if the third ordinate contains NaN, then the geom is actually 2-dimensional
-        //        return !Double.IsNaN(sequence.GetOrdinate(0, ordinate));
-        //    }
-        //    return false;
-        //}
-        #endregion
-
-        #region Implementation of IGeometryIOBase
-
+        /// <inheritdoc cref="IGeometryIOSettings.HandleSRID"/>
         public bool HandleSRID { get { return true; } set { } }
 
+        /// <inheritdoc cref="IGeometryIOSettings.AllowedOrdinates"/>
         public Ordinates AllowedOrdinates
         {
             get { return Ordinates.XYZM; }
         }
 
+        /// <inheritdoc cref="IGeometryIOSettings.HandleOrdinates"/>
+        public Ordinates HandleOrdinates
+        {
+            get { return _outputOrdinates; }
+            set
+            {
+                value |= Ordinates.XY;
+                _outputOrdinates = value & AllowedOrdinates;
+            }
+        }
         #endregion
 
         #region Implementation of IBinaryGeometryWriter
 
+
+        /// <inheritdoc cref="IBinaryGeometryWriter.ByteOrder"/>
         public ByteOrder ByteOrder
         {
             get { return EncodingType; }

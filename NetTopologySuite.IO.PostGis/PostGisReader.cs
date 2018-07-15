@@ -76,56 +76,49 @@ namespace NetTopologySuite.IO
             HandleOrdinates = handleOrdinates;
         }
 
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
+        /// <inheritdoc cref="IGeometryReader{TSource}.Read(TSource)"/>
         public IGeometry Read(byte[] data)
         {
             using (Stream stream = new MemoryStream(data))
                 return Read(stream);
         }
 
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
+        /// <inheritdoc cref="IGeometryReader{TSource}.Read(Stream)"/>
         public IGeometry Read(Stream stream)
         {
             using (var reader = new BiEndianBinaryReader(stream))
                 return Read(reader);
         }
 
-        /// <summary>
-        /// Gets or sets whether invalid linear rings should be fixed
-        /// </summary>
+        /// <inheritdoc cref="IGeometryReader{TSource}.RepairRings"/>>
         public bool RepairRings { get; set; }
 
         /// <summary>
-        ///
+        /// Reads a geometry using the provided <see cref="BinaryReader"/>
         /// </summary>
-        /// <param name="reader"></param>
-        /// <returns></returns>
+        /// <param name="reader">The reader to use</param>
+        /// <returns>A geometry</returns>
         protected IGeometry Read(BinaryReader reader)
         {
+            if (!(reader is BiEndianBinaryReader))
+                throw new ArgumentException("Reader must be BiEndianBinaryReader", nameof(reader));
+
             ((BiEndianBinaryReader)reader).Endianess = (ByteOrder)reader.ReadByte();
 
-            var typeword = reader.ReadInt32();
+            int typeword = reader.ReadInt32();
 
             // cut off high flag bits
             var geometryType = (PostGisGeometryType)(typeword & 0x1FFFFFFF);
 
-            var hasZ = (typeword & 0x80000000) != 0;
-            var hasM = (typeword & 0x40000000) != 0;
-            var hasS = (typeword & 0x20000000) != 0;
+            bool hasZ = (typeword & 0x80000000) != 0;
+            bool hasM = (typeword & 0x40000000) != 0;
+            bool hasS = (typeword & 0x20000000) != 0;
 
             var ordinates = Ordinates.XY;
             if (hasZ) ordinates |= Ordinates.Z;
             if (hasM) ordinates |= Ordinates.M;
 
-            var srid = -1;
+            int srid = -1;
 
             if (hasS)
                 srid = reader.ReadInt32();
@@ -189,7 +182,7 @@ namespace NetTopologySuite.IO
         /// <returns>The coordinate sequence</returns>
         protected ICoordinateSequence ReadCoordinateSequence(BinaryReader reader, ICoordinateSequenceFactory factory, IPrecisionModel precisionModel, Ordinates ordinates)
         {
-            var numPoints = reader.ReadInt32();
+            int numPoints = reader.ReadInt32();
             return ReadCoordinateSequence(reader, factory, precisionModel, numPoints, ordinates);
         }
 
@@ -204,7 +197,7 @@ namespace NetTopologySuite.IO
         /// <returns>The coordinate sequence</returns>
         protected ICoordinateSequence ReadCoordinateSequenceRing(BinaryReader reader, ICoordinateSequenceFactory factory, IPrecisionModel precisionModel, Ordinates ordinates)
         {
-            var numPoints = reader.ReadInt32();
+            int numPoints = reader.ReadInt32();
             var sequence = ReadCoordinateSequence(reader, factory, precisionModel, numPoints, ordinates);
             if (!RepairRings) return sequence;
             if (CoordinateSequences.IsRing(sequence)) return sequence;
@@ -224,16 +217,16 @@ namespace NetTopologySuite.IO
         {
             var sequence = factory.Create(numPoints, HandleOrdinates);
 
-            var ordinateZ = Coordinate.NullOrdinate;
-            var ordinateM = Coordinate.NullOrdinate;
+            double ordinateZ = Coordinate.NullOrdinate;
+            double ordinateM = Coordinate.NullOrdinate;
 
-            var getZ = (ordinates & Ordinates.Z) == Ordinates.Z;
-            var getM = (ordinates & Ordinates.M) == Ordinates.M;
+            bool getZ = (ordinates & Ordinates.Z) == Ordinates.Z;
+            bool getM = (ordinates & Ordinates.M) == Ordinates.M;
 
-            var handleZ = (HandleOrdinates & Ordinates.Z) == Ordinates.Z;
-            var handleM = (HandleOrdinates & Ordinates.M) == Ordinates.M;
+            bool handleZ = (HandleOrdinates & Ordinates.Z) == Ordinates.Z;
+            bool handleM = (HandleOrdinates & Ordinates.M) == Ordinates.M;
 
-            for (var i = 0; i < numPoints; i++)
+            for (int i = 0; i < numPoints; i++)
             {
                 sequence.SetOrdinate(i, Ordinate.X, precisionModel.MakePrecise(reader.ReadDouble()));
                 sequence.SetOrdinate(i, Ordinate.Y, precisionModel.MakePrecise(reader.ReadDouble()));
@@ -280,10 +273,10 @@ namespace NetTopologySuite.IO
         /// <returns>The LineString.</returns>
         protected IPolygon ReadPolygon(BinaryReader reader, IGeometryFactory factory, Ordinates ordinates)
         {
-            var numRings = reader.ReadInt32();
+            int numRings = reader.ReadInt32();
             var exteriorRing = ReadLinearRing(reader, factory, ordinates);
             var interiorRings = new ILinearRing[numRings - 1];
-            for (var i = 0; i < numRings - 1; i++)
+            for (int i = 0; i < numRings - 1; i++)
                 interiorRings[i] = ReadLinearRing(reader, factory, ordinates);
             return factory.CreatePolygon(exteriorRing, interiorRings);
         }
@@ -296,7 +289,7 @@ namespace NetTopologySuite.IO
         protected void ReadGeometryArray<TGeometry>(BinaryReader reader, TGeometry[] container)
             where TGeometry : IGeometry
         {
-            for (var i = 0; i < container.Length; i++)
+            for (int i = 0; i < container.Length; i++)
                 container[i] = (TGeometry)Read(reader);
         }
 
@@ -358,12 +351,14 @@ namespace NetTopologySuite.IO
 
         #region Implementation of IGeometryIOSettings
 
+        /// <inheritdoc cref="IGeometryIOSettings.HandleSRID"/>
         public bool HandleSRID
         {
             get { return true; }
             set { }
         }
 
+        /// <inheritdoc cref="IGeometryIOSettings.AllowedOrdinates"/>
         public Ordinates AllowedOrdinates
         {
             get { return _coordinateSequenceFactory.Ordinates & Ordinates.XYZM; }
@@ -371,6 +366,7 @@ namespace NetTopologySuite.IO
 
         private Ordinates _handleOrdinates;
 
+        /// <inheritdoc cref="IGeometryIOSettings.HandleOrdinates"/>
         public Ordinates HandleOrdinates
         {
             get { return _handleOrdinates; }

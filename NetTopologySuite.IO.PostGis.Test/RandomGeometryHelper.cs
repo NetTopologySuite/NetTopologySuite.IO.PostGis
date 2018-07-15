@@ -3,7 +3,7 @@ using GeoAPI.Geometries;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 
-namespace NetTopologySuite.IO.PostGis.Tests
+namespace NetTopologySuite.IO.PostGis.Test
 {
     public class RandomGeometryHelper
     {
@@ -107,7 +107,7 @@ namespace NetTopologySuite.IO.PostGis.Tests
         {
             get
             {
-                return Factory.CreateMultiPoint(RandomCoordinates);
+                return Factory.CreateMultiPointFromCoords(RandomCoordinates);
             }
         }
 
@@ -171,7 +171,7 @@ namespace NetTopologySuite.IO.PostGis.Tests
                 var mp = Factory.CreateMultiPolygon(polys);
                 var mpUnion = mp.Union();
                 var multiPolygon = mpUnion as IMultiPolygon;
-                return multiPolygon ?? Factory.CreateMultiPolygon(new[] { (IPolygon)mpUnion} );
+                return multiPolygon ?? Factory.CreateMultiPolygon(new[] { (IPolygon)mpUnion });
             }
         }
 

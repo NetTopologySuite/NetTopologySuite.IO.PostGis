@@ -1,4 +1,4 @@
-﻿namespace NetTopologySuite.IO.PostGis.Tests
+﻿namespace NetTopologySuite.IO.PostGis.Test
 {
     using System.Configuration;
     using GeoAPI.Geometries;
@@ -13,7 +13,7 @@
         {
             // NOTE: insert a valid connection string to a postgis db
             if (kvcc["PostGisConnectionString"] == null)
-                kvcc.Add("PostGisConnectionString", "Host=ivv-t3s.ivv-aachen.de;Port=5432;Database=obe;Integrated Security=true;");            
+                kvcc.Add("PostGisConnectionString", "Host=ivv-t3s.ivv-aachen.de;Port=5432;Database=obe;Integrated Security=true;");
         }
 
         protected override void ReadAppConfigInternal(KeyValueConfigurationCollection kvcc)
@@ -52,9 +52,9 @@
                     cmd.CommandText = "DROP TABLE IF EXISTS \"nts_io_postgis_2d\";";
                     cmd.ExecuteNonQuery();
 
-                    cmd.CommandText = 
-                        "CREATE TABLE \"nts_io_postgis_2d\" (id int primary key, wkt text);" 
-                      + "SELECT AddGeometryColumn('nts_io_postgis_2d', 'the_geom', " + 4326 + ",'GEOMETRY', 2);"                        
+                    cmd.CommandText =
+                        "CREATE TABLE \"nts_io_postgis_2d\" (id int primary key, wkt text);"
+                      + "SELECT AddGeometryColumn('nts_io_postgis_2d', 'the_geom', " + 4326 + ",'GEOMETRY', 2);"
                         ;
                     cmd.ExecuteNonQuery();
                 }
@@ -78,7 +78,7 @@
                 using (NpgsqlCommand cmd = cn.CreateCommand())
                 {
                     cmd.CommandText = "INSERT INTO \"nts_io_postgis_2d\" VALUES(@P1, @P2, @P3);";
-                    NpgsqlParameter p1 = new NpgsqlParameter("P1", NpgsqlDbType.Integer) {NpgsqlValue = this.Counter};
+                    NpgsqlParameter p1 = new NpgsqlParameter("P1", NpgsqlDbType.Integer) { NpgsqlValue = this.Counter };
                     NpgsqlParameter p2 = new NpgsqlParameter("P2", NpgsqlDbType.Text) { NpgsqlValue = gIn.AsText() };
                     NpgsqlParameter p3 = new NpgsqlParameter("P3", NpgsqlDbType.Bytea) { NpgsqlValue = b };
                     cmd.Parameters.AddRange(new[] { p1, p2, p3 });

@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 
 namespace NetTopologySuite.IO.PostGis.Test
-{ 
+{
     class Issue174
     {
         [Test, Category("Issue174")]
@@ -17,7 +17,7 @@ namespace NetTopologySuite.IO.PostGis.Test
         private void AssertStronglyNamedAssembly(Type typeFromAssemblyToCheck)
         {
             Assert.IsNotNull(typeFromAssemblyToCheck, "Cannot determine assembly from null");
-            Assembly assembly = typeFromAssemblyToCheck.Assembly;
+            var assembly = typeFromAssemblyToCheck.Assembly;
             StringAssert.DoesNotContain("PublicKeyToken=null", assembly.FullName, "Strongly named assembly should have a PublicKeyToken in fully qualified name");
         }
     }
