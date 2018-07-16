@@ -8,6 +8,7 @@
 		<owners>NetTopologySuite - Team</owners>
 		<licenseUrl>https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis/LICENSE.md</licenseUrl>
 		<projectUrl>https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis</projectUrl>
+		<iconUrl>https://raw.githubusercontent.com/NetTopologySuite/GeoAPI/master/icon.png</iconUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<description>
 			This package contains the IO library to cope with PostGis spatial data.
@@ -16,8 +17,8 @@
 		<tags>NTS PostGis</tags>
 		<language>en-US</language>
 		<frameworkAssemblies>
-			<frameworkAssembly assemblyName="System" targetFramework="net35-client,net40-client,net403-client,net45" />
-			<frameworkAssembly assemblyName="System.Core" targetFramework="net35-client,net40-client,net403-client,net45" />
+			<frameworkAssembly assemblyName="System" />
+			<frameworkAssembly assemblyName="System.Core" />
 		</frameworkAssemblies>
 		<dependencies>
 			<dependency id="NetTopologySuite.Core" version="$version$" />
