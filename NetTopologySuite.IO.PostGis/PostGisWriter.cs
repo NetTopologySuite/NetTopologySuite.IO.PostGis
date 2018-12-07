@@ -554,12 +554,10 @@ namespace NetTopologySuite.IO
         /// <inheritdoc cref="IGeometryIOSettings.HandleOrdinates"/>
         public Ordinates HandleOrdinates
         {
-            get { return _outputOrdinates; }
-            set
-            {
-                value |= Ordinates.XY;
-                _outputOrdinates = value & AllowedOrdinates;
-            }
+            get => _outputOrdinates;
+            set => _outputOrdinates = value == Ordinates.None
+                ? Ordinates.None
+                : (value | Ordinates.XY) & AllowedOrdinates;
         }
         #endregion
 
