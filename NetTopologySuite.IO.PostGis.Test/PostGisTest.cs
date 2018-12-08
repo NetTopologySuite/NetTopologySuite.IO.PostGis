@@ -199,5 +199,18 @@ namespace NetTopologySuite.IO.PostGis.Test
                 Assert.AreEqual(source.Coordinates[i].Z, target.Coordinates[i].Z);
             }
         }
+
+        [Test]
+        public void GeometryCollection_empty()
+        {
+            IGeometryCollection source = GeometryCollection.Empty;
+
+            // don't assign ordinates, needs to call `CheckOrdinates(...)`
+            byte[] bytes = new PostGisWriter().Write(source);
+
+            IGeometryCollection target = (IGeometryCollection)new PostGisReader().Read(bytes);
+
+            Assert.AreEqual(source.Count, target.Count);
+        }
     }
 }
