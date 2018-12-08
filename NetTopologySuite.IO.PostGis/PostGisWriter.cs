@@ -533,7 +533,7 @@ namespace NetTopologySuite.IO
             if ((sequence.Ordinates & Ordinates.M) != 0)
             {
                 if (!double.IsNaN(sequence.GetOrdinate(0, Ordinate.M)))
-                    result |= Ordinates.Z;
+                    result |= Ordinates.M;
             }
             return result;
         }
