@@ -212,5 +212,44 @@ namespace NetTopologySuite.IO.PostGis.Test
 
             Assert.AreEqual(source.Count, target.Count);
         }
+
+        [Test]
+        public void DefaultOrdinatesIsNone()
+        {
+            Assert.That(new PostGisWriter().HandleOrdinates, Is.EqualTo(Ordinates.None));
+            Assert.That(new PostGisReader().HandleOrdinates, Is.EqualTo(Ordinates.None));
+        }
+
+        [Test]
+        [TestCase(Ordinates.X | Ordinates.Z)]
+        [TestCase(Ordinates.Y | Ordinates.M)]
+        public void OrdinatesContainXY(Ordinates ordinates)
+        {
+            var writer = new PostGisWriter { HandleOrdinates = ordinates };
+            var reader = new PostGisReader { HandleOrdinates = ordinates };
+            Assert.That(writer.HandleOrdinates & Ordinates.XY, Is.EqualTo(Ordinates.XY));
+            Assert.That(reader.HandleOrdinates & Ordinates.XY, Is.EqualTo(Ordinates.XY));
+        }
+
+        [Test, Combinatorial]
+        public void WriteCoordinates(
+            [Values(Ordinates.XY, Ordinates.XYZ, Ordinates.None)] Ordinates writerCoords,
+            [Values(Ordinates.XY, Ordinates.XYZ, Ordinates.None)] Ordinates readerCoords,
+            [Values(Ordinates.XY, Ordinates.XYZ)] Ordinates pointCoords)
+        {
+            var writer = new PostGisWriter { HandleOrdinates = writerCoords };
+            var reader = new PostGisReader { HandleOrdinates = readerCoords };
+
+            var bytes = writer.Write(pointCoords ==  Ordinates.XYZ ? new Point(1, 1, 1) : new Point(1, 1));
+            var output = (IPoint)reader.Read(bytes);
+
+            var expectedOutputCoords = pointCoords;
+            if (writerCoords != Ordinates.None)
+                expectedOutputCoords &= writerCoords;
+            if (readerCoords != Ordinates.None)
+                expectedOutputCoords &= readerCoords;
+
+            Assert.That(output.CoordinateSequence.Ordinates, Is.EqualTo(expectedOutputCoords));
+        }
     }
 }

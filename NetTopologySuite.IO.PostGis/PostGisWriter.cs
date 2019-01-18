@@ -43,43 +43,20 @@ namespace NetTopologySuite.IO
         /// <inheritdoc cref="IGeometryWriter{TSink}.Write(IGeometry)"/>
         public byte[] Write(IGeometry geometry)
         {
-            return Write(geometry, HandleOrdinates);
+            var maxCoords = HandleOrdinates == Ordinates.None ? Ordinates.XYZM : HandleOrdinates;
+            int coordinateSpace = 8 * OrdinatesUtility.OrdinatesToDimension(maxCoords);
+            byte[] bytes = GetBytes(geometry, coordinateSpace);
+            Write(geometry, new MemoryStream(bytes));
+
+            return bytes;
         }
 
         /// <inheritdoc cref="IGeometryWriter{TSink}.Write(IGeometry, Stream)"/>
         public void Write(IGeometry geometry, Stream stream)
         {
-            Write(geometry, HandleOrdinates, stream);
-        }
-
-        /// <summary>
-        /// Writes a binary encoded PostGIS of the given <paramref name="geometry"/> to to an array of bytes.
-        /// </summary>
-        /// <param name="geometry">The geometry</param>
-        /// <param name="ordinates">The ordinates of each geometry's coordinate. <see cref="Ordinates.XY"/> area always written.</param>
-        /// <returns>An array of bytes.</returns>
-        private byte[] Write(IGeometry geometry, Ordinates ordinates)
-        {
-            int coordinateSpace = 8 * OrdinatesUtility.OrdinatesToDimension(ordinates);
-            byte[] bytes = GetBytes(geometry, coordinateSpace);
-            Write(geometry, ordinates, new MemoryStream(bytes));
-
-            return bytes;
-        }
-
-
-
-        /// <summary>
-        /// Writes a binary encoded PostGIS of the given <paramref name="geometry"/> to <paramref name="stream"/>.
-        /// </summary>
-        /// <param name="geometry">The geometry</param>
-        /// <param name="ordinates">The ordinates of each geometry's coordinate. <see cref="Ordinates.XY"/> area always written.</param>
-        /// <param name="stream">The stream to write to</param>
-        private void Write(IGeometry geometry, Ordinates ordinates, Stream stream)
-        {
             using (var writer = EncodingType == ByteOrder.LittleEndian ? new BinaryWriter(stream) : new BEBinaryWriter(stream))
             {
-                Write(geometry, ordinates, EncodingType, writer);
+                Write(geometry, EncodingType, writer);
             }
         }
 
@@ -100,10 +77,11 @@ namespace NetTopologySuite.IO
         /// <param name="ordinates">The ordinates of each geometry's coordinate. <see cref="Ordinates.XY"/> area always written.</param>
         /// <param name="byteOrder">The byte order.</param>
         /// <param name="writer">The writer to use.</param>
-        private void Write(IGeometry geometry, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(IGeometry geometry, ByteOrder byteOrder, BinaryWriter writer)
         {
-            if (ordinates == Ordinates.None)
-                ordinates = CheckOrdinates(geometry);
+            var ordinates = CheckOrdinates(geometry);
+            if (HandleOrdinates != Ordinates.None)
+                ordinates &= HandleOrdinates;
 
             if (geometry is IPoint)
                 Write(geometry as IPoint, ordinates, byteOrder, writer);
@@ -168,22 +146,14 @@ namespace NetTopologySuite.IO
                 writer.Write(sequence.GetOrdinate(i, Ordinate.X));
                 writer.Write(sequence.GetOrdinate(i, Ordinate.Y));
                 if ((ordinates & Ordinates.Z) != 0)
-                {
-                    double z = sequence.GetOrdinate(i, Ordinate.Z);
-                    if (double.IsNaN(z)) z = 0d;
-                    writer.Write(z);
-                }
+                    writer.Write(sequence.GetOrdinate(i, Ordinate.Z));
                 if ((ordinates & Ordinates.M) != 0)
-                {
-                    double m = sequence.GetOrdinate(i, Ordinate.M);
-                    if (double.IsNaN(m)) m = 0d;
-                    writer.Write(m);
-                }
+                    writer.Write(sequence.GetOrdinate(i, Ordinate.M));
             }
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="byteOrder"></param>
         /// <param name="point"></param>
@@ -206,12 +176,12 @@ namespace NetTopologySuite.IO
         {
             for (int i = 0; i < geometries.Count; i++)
             {
-                Write(geometries[i], ordinates, byteOrder, writer);
+                Write(geometries[i], byteOrder, writer);
             }
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="lineString"></param>
         /// <param name="ordinates"></param>
@@ -557,10 +527,12 @@ namespace NetTopologySuite.IO
             get { return _outputOrdinates; }
             set
             {
-                value |= Ordinates.XY;
-                _outputOrdinates = value & AllowedOrdinates;
+                _outputOrdinates = value == Ordinates.None
+                    ? Ordinates.None
+                    : (value | Ordinates.XY) & AllowedOrdinates;
             }
         }
+
         #endregion
 
         #region Implementation of IBinaryGeometryWriter

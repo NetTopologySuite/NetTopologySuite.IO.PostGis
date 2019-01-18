@@ -41,7 +41,7 @@ namespace NetTopologySuite.IO
         public PostGisReader()
             : this(GeometryServiceProvider.Instance.DefaultCoordinateSequenceFactory,
                    GeometryServiceProvider.Instance.DefaultPrecisionModel,
-                   Ordinates.XYZM)
+                   Ordinates.None)
         { }
 
         /// <summary>
@@ -114,9 +114,9 @@ namespace NetTopologySuite.IO
             bool hasM = (typeword & 0x40000000) != 0;
             bool hasS = (typeword & 0x20000000) != 0;
 
-            var ordinates = Ordinates.XY;
-            if (hasZ) ordinates |= Ordinates.Z;
-            if (hasM) ordinates |= Ordinates.M;
+            var receivedOrdinates = Ordinates.XY;
+            if (hasZ) receivedOrdinates |= Ordinates.Z;
+            if (hasM) receivedOrdinates |= Ordinates.M;
 
             int srid = -1;
 
@@ -132,13 +132,13 @@ namespace NetTopologySuite.IO
             switch (geometryType)
             {
                 case PostGisGeometryType.Point:
-                    result = ReadPoint(reader, factory, ordinates);
+                    result = ReadPoint(reader, factory, receivedOrdinates);
                     break;
                 case PostGisGeometryType.LineString:
-                    result = ReadLineString(reader, factory, ordinates);
+                    result = ReadLineString(reader, factory, receivedOrdinates);
                     break;
                 case PostGisGeometryType.Polygon:
-                    result = ReadPolygon(reader, factory, ordinates);
+                    result = ReadPolygon(reader, factory, receivedOrdinates);
                     break;
                 case PostGisGeometryType.MultiPoint:
                     result = ReadMultiPoint(reader, factory);
@@ -165,11 +165,11 @@ namespace NetTopologySuite.IO
         /// </summary>
         /// <param name="reader">The binary reader.</param>
         /// <param name="factory">The geometry factory to use for geometry creation.</param>
-        /// <param name="ordinates">The ordinates to read. <see cref="Ordinates.XY"/> are always read.</param>
+        /// <param name="receivedOrdinates">The ordinates to read. <see cref="Ordinates.XY"/> are always read.</param>
         /// <returns>The Point.</returns>
-        protected IPoint ReadPoint(BinaryReader reader, IGeometryFactory factory, Ordinates ordinates)
+        protected IPoint ReadPoint(BinaryReader reader, IGeometryFactory factory, Ordinates receivedOrdinates)
         {
-            return factory.CreatePoint(ReadCoordinateSequence(reader, factory.CoordinateSequenceFactory, factory.PrecisionModel, 1, ordinates));
+            return factory.CreatePoint(ReadCoordinateSequence(reader, factory.CoordinateSequenceFactory, factory.PrecisionModel, 1, receivedOrdinates));
         }
 
         /// <summary>
@@ -178,12 +178,12 @@ namespace NetTopologySuite.IO
         /// <param name="reader">The binary reader</param>
         /// <param name="factory">The geometry factory to use for geometry creation.</param>
         /// <param name="precisionModel">The precision model used to make x- and y-ordinates precise.</param>
-        /// <param name="ordinates">The ordinates to read. <see cref="Ordinates.XY"/> are always read.</param>
+        /// <param name="receivedOrdinates">The ordinates to read. <see cref="Ordinates.XY"/> are always read.</param>
         /// <returns>The coordinate sequence</returns>
-        protected ICoordinateSequence ReadCoordinateSequence(BinaryReader reader, ICoordinateSequenceFactory factory, IPrecisionModel precisionModel, Ordinates ordinates)
+        protected ICoordinateSequence ReadCoordinateSequence(BinaryReader reader, ICoordinateSequenceFactory factory, IPrecisionModel precisionModel, Ordinates receivedOrdinates)
         {
             int numPoints = reader.ReadInt32();
-            return ReadCoordinateSequence(reader, factory, precisionModel, numPoints, ordinates);
+            return ReadCoordinateSequence(reader, factory, precisionModel, numPoints, receivedOrdinates);
         }
 
 
@@ -193,12 +193,12 @@ namespace NetTopologySuite.IO
         /// <param name="reader">The binary reader</param>
         /// <param name="factory">The geometry factory to use for geometry creation.</param>
         /// <param name="precisionModel">The precision model used to make x- and y-ordinates precise.</param>
-        /// <param name="ordinates">The ordinates to read. <see cref="Ordinates.XY"/> are always read.</param>
+        /// <param name="receivedOrdinates">The ordinates to read. <see cref="Ordinates.XY"/> are always read.</param>
         /// <returns>The coordinate sequence</returns>
-        protected ICoordinateSequence ReadCoordinateSequenceRing(BinaryReader reader, ICoordinateSequenceFactory factory, IPrecisionModel precisionModel, Ordinates ordinates)
+        protected ICoordinateSequence ReadCoordinateSequenceRing(BinaryReader reader, ICoordinateSequenceFactory factory, IPrecisionModel precisionModel, Ordinates receivedOrdinates)
         {
             int numPoints = reader.ReadInt32();
-            var sequence = ReadCoordinateSequence(reader, factory, precisionModel, numPoints, ordinates);
+            var sequence = ReadCoordinateSequence(reader, factory, precisionModel, numPoints, receivedOrdinates);
             if (!RepairRings) return sequence;
             if (CoordinateSequences.IsRing(sequence)) return sequence;
             return CoordinateSequences.EnsureValidRing(factory, sequence);
@@ -211,30 +211,41 @@ namespace NetTopologySuite.IO
         /// <param name="factory">The geometry factory to use for geometry creation.</param>
         /// <param name="precisionModel">The precision model used to make x- and y-ordinates precise.</param>
         /// <param name="numPoints">The number of points in the coordinate sequence.</param>
-        /// <param name="ordinates">The ordinates to read. <see cref="Ordinates.XY"/> are always read.</param>
+        /// <param name="receivedOrdinates">The ordinates to read. <see cref="Ordinates.XY"/> are always read.</param>
         /// <returns>The coordinate sequence</returns>
-        protected ICoordinateSequence ReadCoordinateSequence(BinaryReader reader, ICoordinateSequenceFactory factory, IPrecisionModel precisionModel, int numPoints, Ordinates ordinates)
+        protected ICoordinateSequence ReadCoordinateSequence(BinaryReader reader, ICoordinateSequenceFactory factory, IPrecisionModel precisionModel, int numPoints, Ordinates receivedOrdinates)
         {
-            var sequence = factory.Create(numPoints, HandleOrdinates);
+            var outputOrdinates = receivedOrdinates;
+            if (HandleOrdinates != Ordinates.None)
+                outputOrdinates &= HandleOrdinates;
 
-            double ordinateZ = Coordinate.NullOrdinate;
-            double ordinateM = Coordinate.NullOrdinate;
+            var sequence = factory.Create(numPoints, outputOrdinates);
 
-            bool getZ = (ordinates & Ordinates.Z) == Ordinates.Z;
-            bool getM = (ordinates & Ordinates.M) == Ordinates.M;
-
-            bool handleZ = (HandleOrdinates & Ordinates.Z) == Ordinates.Z;
-            bool handleM = (HandleOrdinates & Ordinates.M) == Ordinates.M;
+            var receivedZ = receivedOrdinates.HasFlag(Ordinates.Z);
+            var receivedM = receivedOrdinates.HasFlag(Ordinates.M);
+            var outputtingZ = outputOrdinates.HasFlag(Ordinates.Z);
+            var outputtingM = outputOrdinates.HasFlag(Ordinates.M);
 
             for (int i = 0; i < numPoints; i++)
             {
                 sequence.SetOrdinate(i, Ordinate.X, precisionModel.MakePrecise(reader.ReadDouble()));
                 sequence.SetOrdinate(i, Ordinate.Y, precisionModel.MakePrecise(reader.ReadDouble()));
-                if (getZ) ordinateZ = reader.ReadDouble();
-                if (handleZ) sequence.SetOrdinate(i, Ordinate.Z, ordinateZ);
-                if (getM) ordinateM = reader.ReadDouble();
-                if (handleM) sequence.SetOrdinate(i, Ordinate.M, ordinateM);
+
+                if (receivedZ)
+                {
+                    var z = reader.ReadDouble();
+                    if (outputtingZ)
+                        sequence.SetOrdinate(i, Ordinate.Z, z);
+                }
+
+                if (receivedM)
+                {
+                    var m = reader.ReadDouble();
+                    if (outputtingM)
+                        sequence.SetOrdinate(i, Ordinate.M, m);
+                }
             }
+
             return sequence;
         }
 
@@ -372,8 +383,9 @@ namespace NetTopologySuite.IO
             get { return _handleOrdinates; }
             set
             {
-                value &= AllowedOrdinates;
-                _handleOrdinates = value;
+                _handleOrdinates = value == Ordinates.None
+                    ? Ordinates.None
+                    : (value | Ordinates.XY) & AllowedOrdinates;
             }
         }
 
