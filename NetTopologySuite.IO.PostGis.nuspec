@@ -21,7 +21,8 @@
 			<frameworkAssembly assemblyName="System.Core" />
 		</frameworkAssemblies>
 		<dependencies>
-			<dependency id="NetTopologySuite.Core" version="$version$" />
+			<dependency id="GeoAPI.Core" version="[$geoapiversion$, 2.0.0-A)" />
+			<dependency id="NetTopologySuite.Core" version="[$ntsversion$, 2.0.0-A)" />
 		</dependencies>
 	</metadata>
 	<files>
@@ -31,6 +32,5 @@
 		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.dll" target="lib" />
 		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.pdb" target="lib" />
 		<file src="Release\AnyCPU\**\NetTopologySuite.IO.PostGis.xml" target="lib" />
-    
 	</files>
 </package>
