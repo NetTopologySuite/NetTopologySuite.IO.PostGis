@@ -6,7 +6,7 @@
 		<title>NTS - Topology Suite - IO Libraries</title>
 		<authors>NetTopologySuite - Team</authors>
 		<owners>NetTopologySuite - Team</owners>
-		<licenseUrl>https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis/LICENSE.md</licenseUrl>
+		<license type="expression">BSD-3-Clause</license>
 		<projectUrl>https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis</projectUrl>
 		<iconUrl>https://raw.githubusercontent.com/NetTopologySuite/GeoAPI/master/icon.png</iconUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
