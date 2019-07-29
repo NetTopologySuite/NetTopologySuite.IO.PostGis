@@ -3,7 +3,6 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using GeoAPI.Geometries;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Implementation;
 using NUnit.Framework;
@@ -20,9 +19,8 @@ namespace NetTopologySuite.IO.PostGis.Test
         {
         }
 
-        protected AbstractIOFixture(IGeometryFactory factory)
+        protected AbstractIOFixture(GeometryFactory factory)
         {
-            GeoAPI.GeometryServiceProvider.Instance = NtsGeometryServices.Instance;
             RandomGeometryHelper = new RandomGeometryHelper(factory);
         }
 
@@ -51,7 +49,10 @@ namespace NetTopologySuite.IO.PostGis.Test
         {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetTopologySuite.IO.PostGis.Test.dll");
             if (!File.Exists(path + ".config"))
+            {
                 CreateAppConfig(path);
+            }
+
             UpdateAppConfig(path);
             ReadAppConfig(path);
         }
@@ -115,11 +116,12 @@ namespace NetTopologySuite.IO.PostGis.Test
             }
             protected set
             {
-                var oldPM = new PrecisionModel();
                 if (RandomGeometryHelper == null || RandomGeometryHelper.Factory == null)
+                {
                     throw new InvalidOperationException();
+                }
 
-                oldPM = (PrecisionModel)RandomGeometryHelper.Factory.PrecisionModel;
+                var oldPM = RandomGeometryHelper.Factory.PrecisionModel;
                 RandomGeometryHelper.Factory = RandomGeometryHelper.Factory is OgcCompliantGeometryFactory
                     ? new OgcCompliantGeometryFactory(oldPM, value)
                     : new GeometryFactory(oldPM, value);
@@ -130,15 +132,19 @@ namespace NetTopologySuite.IO.PostGis.Test
         {
             get
             {
-                return (PrecisionModel)RandomGeometryHelper.Factory.PrecisionModel;
+                return RandomGeometryHelper.Factory.PrecisionModel;
             }
             protected set
             {
                 if (value == null)
+                {
                     return;
+                }
 
                 if (value == PrecisionModel)
+                {
                     return;
+                }
 
                 var factory = RandomGeometryHelper.Factory;
                 int oldSrid = factory?.SRID ?? 0;
@@ -147,9 +153,13 @@ namespace NetTopologySuite.IO.PostGis.Test
                                      : CoordinateArraySequenceFactory.Instance;
 
                 if (RandomGeometryHelper.Factory is OgcCompliantGeometryFactory)
+                {
                     RandomGeometryHelper.Factory = new OgcCompliantGeometryFactory(value, oldSrid, oldFactory);
+                }
                 else
+                {
                     RandomGeometryHelper.Factory = new GeometryFactory(value, oldSrid, oldFactory);
+                }
             }
         }
 
@@ -192,72 +202,89 @@ namespace NetTopologySuite.IO.PostGis.Test
         /// </summary>
         protected abstract void CreateTestStore();
 
-        public void PerformTest(IGeometry gIn)
+        public void PerformTest(Geometry gIn)
         {
-            WKTWriter writer = new WKTWriter(2) { EmitSRID = true, MaxCoordinatesPerLine = 3, };
+            var writer = new WKTWriter(2) { EmitSRID = true, MaxCoordinatesPerLine = 3, };
             byte[] b = null;
             Assert.DoesNotThrow(() => b = Write(gIn), "Threw exception during write:\n{0}", writer.WriteFormatted(gIn));
 
-            IGeometry gParsed = null;
+            Geometry gParsed = null;
             Assert.DoesNotThrow(() => gParsed = Read(b), "Threw exception during read:\n{0}", writer.WriteFormatted(gIn));
 
             Assert.IsNotNull(gParsed, "Could not be parsed\n{0}", gIn);
             CheckEquality(gIn, gParsed, writer);
         }
 
-        protected virtual void CheckEquality(IGeometry gIn, IGeometry gParsed, WKTWriter writer)
+        protected virtual void CheckEquality(Geometry gIn, Geometry gParsed, WKTWriter writer)
         {
             Assert.IsTrue(gIn.EqualsExact(gParsed), "Instances are not equal\n{0}\n\n{1}", gIn, gParsed);
         }
 
-        protected abstract IGeometry Read(byte[] b);
+        protected abstract Geometry Read(byte[] b);
 
-        protected abstract byte[] Write(IGeometry gIn);
+        protected abstract byte[] Write(Geometry gIn);
 
         [Test]
         public virtual void TestPoint()
         {
             for (int i = 0; i < 5; i++)
+            {
                 PerformTest(RandomGeometryHelper.Point);
+            }
         }
+
         [Test]
         public virtual void TestLineString()
         {
             for (int i = 0; i < 5; i++)
+            {
                 PerformTest(RandomGeometryHelper.LineString);
+            }
         }
+
         [Test]
         public virtual void TestPolygon()
         {
             for (int i = 0; i < 5; i++)
+            {
                 PerformTest(RandomGeometryHelper.Polygon);
+            }
         }
+
         [Test]
         public virtual void TestMultiPoint()
         {
             for (int i = 0; i < 5; i++)
+            {
                 PerformTest(RandomGeometryHelper.MultiPoint);
+            }
         }
+
         [Test]
         public virtual void TestMultiLineString()
         {
             for (int i = 0; i < 5; i++)
+            {
                 PerformTest(RandomGeometryHelper.MultiLineString);
+            }
         }
 
         [Test]
         public virtual void TestMultiPolygon()
         {
             for (int i = 0; i < 5; i++)
+            {
                 PerformTest(RandomGeometryHelper.MultiPolygon);
+            }
         }
 
         [Test]
-
         public virtual void TestGeometryCollection()
         {
             for (int i = 0; i < 5; i++)
+            {
                 PerformTest(RandomGeometryHelper.GeometryCollection);
+            }
         }
     }
 }

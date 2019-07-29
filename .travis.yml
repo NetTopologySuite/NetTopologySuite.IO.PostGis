@@ -1,0 +1,35 @@
+language: csharp
+mono: none
+sudo: false
+dotnet: 2.2
+dist: xenial
+
+
+script:
+  - dotnet build -c Release
+  - dotnet test  -c Release --no-build
+  - dotnet pack  -c Release --no-build -p:NoWarn=NU5105
+
+
+deploy:
+
+
+  - on:
+      branch: master
+    provider: script
+    script:
+      - dotnet nuget push **/*.nupkg -s https://api.nuget.org/v3/index.json -k $NUGET_API_KEY
+    skip_cleanup: true
+
+
+  - on:
+      branch: develop
+    provider: script
+    script:
+      - dotnet nuget push **/*.nupkg -s https://www.myget.org/F/nettopologysuite/api/v2/package -k $MYGET_API_KEY
+    skip_cleanup: true
+
+env:
+  global:
+  - secure: 2atOnT5zaaoNuiPY/OxRtimhZni/AatsyPezirwwLgcjHoORWj+ji0p1Nl6gOsZ9hWePOz9yTPn14ZLH0cML2r/mygMGYmqnOz1Dd8eXWpjgrPe3UQlnpqcktKvRlPMA81LPcu/Rwqo/7VvaAMx8LADoc3vjXu7hKdPWQbPMDRwcyxoTFAi6KqpfnlSJkWZ4mpXDEM2w7k9JRyMZZtxwLnPLzwg6FjZ+y6SAEUFwg6VbTc/r3mwzsaSr7CoGiJ/oqyMNRNHSxCAIgqepb07HwLXe/X1RFjPOIcs2Gw0uQfpVpYQaZKdHM8gVWW2vtDrjECHyWTu3wilRzFV7y3tTPfXSO8CPYJ7lHR828PHUH8ABf6AL9gIkDhrw5aGZPGYzLThIZ1jVjXHIC+nMQz/QP8NA42l53i3gokovQ8/ZVPKabETSZsoqQBGWjC4IL/Exq3EPGU5gjv9sCYOkeVjrSrtetDVE1fCBwKXyWZqAQw5WicTmmF8JsEQxqLA0zvqeJxZOEA+QCKQ8VVVZowj1AL4hB8UJh9dNg8i6sEoSs1+R8482FaMQbBqvk6JRDlvPP3Va66xoK2SnGJzo9NfWFxl+cK7JAK+dGIzkmbXg1z0ZWpmyHIo2ofGzVEIoVSgw1l5tWpUw4OpiPguPYO5/6FYPf82ijxWVnspa7GWqlbY=
+  - secure: AXZtvlWu58PcVn4NByPwrUO3tQY/NGj6Gqjbf25NYEM/oC0xtibNj+j+dhzQErKmiPC9t6NNNuU2Zrdh6S4MGyUth0JO+HEmTVQCMAom1QyG7x/QeOEMzCuEhihFAORHuEemdpj69a6GCUDVP81DCDZ4cr9f1DwLbxo25B+ya1oH3j6ugGxVeDYD4t1BUcTrzo08YmTph61uMs+lD9pSmXnd19DfDaa0mcYqpxmlrXkE3B3TAEQ+A6K5FXBZpvrarBQNuk7XcIBxhY2Au2DdDqN+FYgHwBN5d3YdXkuzdJlWyG1auAyRvZm+FkztU0Ir+zs85qbaMCMM9TwV/MBIQpJRN06YEasbL9GQd62RFl0KDvMxDWl3mXRkKDCDimZNuQ5kvhBX7yPcSDkPkHJ852Mt3WEHI1AxFxHrQHyc4fW/PWaZJYubiA3v/j8oqim0E1CWo+GLe7+9ffSfNv0RztMwRyyyIJaFZVnJ2o/XOe53eRgYVWYkArc4B+YJa9Jlsh2V7X4b4UMB6nGrG9hCOU+Y4pnefhoPfIQWtT4KbevUiSzfwxGuZfi3372mCWapOTlIazR+bXGXzrJ/R7xNZle16mqEVa2vs0gTwNxEi7dC6TZrMrl7kDdG/f3Bwgud6/87CNm+qn6iQNFgRYjMImeewr2dbGeWU8IqLX5SS7w=
