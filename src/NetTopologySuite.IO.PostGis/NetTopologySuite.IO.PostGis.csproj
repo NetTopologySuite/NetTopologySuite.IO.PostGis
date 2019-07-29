@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="NuGet Package Info">
-    <PackageId>NetTopologySuite.IO.GeoJSON</PackageId>
+    <PackageId>NetTopologySuite.IO.PostGis</PackageId>
     <Title>NTS - Topology Suite - IO Libraries</Title>
     <Authors>NetTopologySuite - Team</Authors>
     <Owners>NetTopologySuite - Team</Owners>
