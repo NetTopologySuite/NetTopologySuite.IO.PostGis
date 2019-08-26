@@ -1,0 +1,35 @@
+language: csharp
+mono: none
+sudo: false
+dotnet: 2.2
+dist: xenial
+
+
+script:
+  - dotnet build -c Release
+  - dotnet test  -c Release --no-build
+  - dotnet pack  -c Release --no-build -p:NoWarn=NU5105
+
+
+deploy:
+
+
+  - on:
+      branch: master
+    provider: script
+    script:
+      - dotnet nuget push **/*.nupkg -s https://api.nuget.org/v3/index.json -k $NUGET_API_KEY
+    skip_cleanup: true
+
+
+  - on:
+      branch: develop
+    provider: script
+    script:
+      - dotnet nuget push **/*.nupkg -s https://www.myget.org/F/nettopologysuite/api/v2/package -k $MYGET_API_KEY
+    skip_cleanup: true
+
+env:
+  global:
+  - secure: ozrDELeZxOKIVoZ3h97IQU1a9b2o11imXWsSefTk8L71K7lN3CETSjuw/ICvj+MM/0C7pk21LisMPlaPyA1FOabUcVyjhtnDyxusi/JbwxS5wyYZCsX2UO8ch+jyztG9VdqzYGpGWVhO29Zawi87nqGHMbUSLtFXaHtgJwnZ0e3+veVhWArBZnJjgXb+f7Jrf4bRYqWX0CeqKvTbVKvaMhVfH+NrE0j9xQZkgB7GKF7uALk+DNdKg66NfbyQIQuDFYpcthrXBg9T6oyxuKmqoNnd+JtwE8bXFwx51f5nSbcahKsP/mYaFUuyNUMXXZdoP2TEw6UzFqakpxMlHiLy8LAoSb4MogZHl0M0SYcorZyMfU8L9lRxVUfhuGNet5VNVv7UsXTeiAEWIKtcZc7TgZErVUuuaQW8qDmpGeGDZlppbciNoxj20J6t59H0JPnOOUWFyPDoMbpTn92b/zNAXJYCytKvrtxchcNRMJdb9YBOsRScZ1/iAGrxnx/yWkKSj5PXFqJ/T1HsCJLK9EWBeDhRPez+q68dXE6HumyLkFyniptWibSnvkrg/qX3t1FE7EFa2PombCjv0siBJQ+EtTxjYYx4gzlAn4RAAVNQptv2QKYLnYgVoYN/6QsaPuK+As/UxcSHnu3Za3wIZL+c6S0oxmGtLDrLukDkjLnHQsk=
+  - secure: amVtPGH3TzJNK7gh+95MkgzJkOgwCll30zej/b6tlQKp9M6UkyFQyeeXxnzhTga0s68cI7/b/TaGoEd3OgL+XAzWsX/XqBxFVVldi7WRev1b74gpgiDAEvq+AwPjg9yxvola3Y/QtKtxhFlnrW+0BlqWMQiHNxuZrGYwflCtftKC5b1CxIxlBwm6BK0UL+6Xhu1MOD5rhHDAnffz/5Semg9F+KTujpbFMpgL6o69IU32TLAtViJPjwn37C4w+9RjL94bZOxOV/GyVwYpdjfTiCw/ptC5f7AgSGg8Or72IOF9wyYR9Ice7FtXYW+6+lMbYV1HPcraeW3T4//Cn3EYImkpQhJz9abwaFiYsf75zYneAf3oK9FigEes/z5yT922uNwd0P3ReJczRCrztXS6HZB982AeOHCdrGyRyDoP4bHEOGs7M+KuYRn6ncGoQNjC6/LoF7mgMT77yQMit4sRicSpQI7EhcTdMP73VQsHq94q3QbI7jaPteIOEFidEJXR5N4CT+aH2cfVsD2CCbRdS3VX2FVOCd1D4qo9rpD5B34NxRziAyUyZdYlayhakM210JBzaB3ioaHRAFMu8UZbq/W3CtN2tHAZJURPG1jBF1s9GxEsokBCHwXiKu7z9PJxDPpVkYXbECyZ7YOORMnPbjhlFr+ouCaeyFpXxP32BHs=
