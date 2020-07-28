@@ -321,13 +321,17 @@ namespace NetTopologySuite.IO
         protected Polygon ReadPolygon(BinaryReader reader, GeometryFactory factory, Ordinates ordinates)
         {
             int numRings = reader.ReadInt32();
-            var exteriorRing = ReadLinearRing(reader, factory, ordinates);
-            var interiorRings = new LinearRing[numRings - 1];
-            for (int i = 0; i < interiorRings.Length; i++)
+            LinearRing exteriorRing = null;
+            LinearRing[] interiorRings = null;
+            if (numRings > 0)
             {
-                interiorRings[i] = ReadLinearRing(reader, factory, ordinates);
+                exteriorRing = ReadLinearRing(reader, factory, ordinates);
+                interiorRings = new LinearRing[numRings - 1];
+                for (int i = 0; i < interiorRings.Length; i++)
+                {
+                    interiorRings[i] = ReadLinearRing(reader, factory, ordinates);
+                }
             }
-
             return factory.CreatePolygon(exteriorRing, interiorRings);
         }
 
