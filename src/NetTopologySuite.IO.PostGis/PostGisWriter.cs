@@ -274,6 +274,13 @@ namespace NetTopologySuite.IO
                 polygon.SRID,
                 ordinates, byteOrder, writer);
 
+            // If polygon is empty, simply write 0
+            if (polygon.IsEmpty)
+            {
+                writer.Write(0);
+                return;
+            }
+
             var holes = polygon.Holes;
             writer.Write(holes.Length + 1);
 
@@ -301,31 +308,31 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// Writes a 'MultLineString' to the stream.
+        /// Writes a 'MultiLineString' to the stream.
         /// </summary>
-        /// <param name="multLineString">The polygon to write.</param>
+        /// <param name="multiLineString">The linestring to write.</param>
         /// <param name="ordinates">The ordinates to write. <see cref="Ordinates.XY"/> are always written.</param>
         /// <param name="byteOrder">The byte order.</param>
         /// <param name="writer">The writer to use.</param>
-        private void Write(MultiLineString multLineString, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(MultiLineString multiLineString, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.MultiLineString, multLineString.SRID, ordinates, byteOrder, writer);
-            writer.Write(multLineString.NumGeometries);
-            Write(multLineString.Geometries, ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.MultiLineString, multiLineString.SRID, ordinates, byteOrder, writer);
+            writer.Write(multiLineString.NumGeometries);
+            Write(multiLineString.Geometries, ordinates, byteOrder, writer);
         }
 
         /// <summary>
-        /// Writes a 'MultPolygon' to the stream.
+        /// Writes a 'MultiPolygon' to the stream.
         /// </summary>
-        /// <param name="multPolygon">The polygon to write.</param>
+        /// <param name="multiPolygon">The polygon to write.</param>
         /// <param name="ordinates">The ordinates to write. <see cref="Ordinates.XY"/> are always written.</param>
         /// <param name="byteOrder">The byte order.</param>
         /// <param name="writer">The writer to use.</param>
-        private void Write(MultiPolygon multPolygon, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(MultiPolygon multiPolygon, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.MultiPolygon, multPolygon.SRID, ordinates, byteOrder, writer);
-            writer.Write(multPolygon.NumGeometries);
-            Write(multPolygon.Geometries, ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.MultiPolygon, multiPolygon.SRID, ordinates, byteOrder, writer);
+            writer.Write(multiPolygon.NumGeometries);
+            Write(multiPolygon.Geometries, ordinates, byteOrder, writer);
         }
 
         /// <summary>
@@ -475,15 +482,18 @@ namespace NetTopologySuite.IO
         /// <returns></returns>
         private int GetByteStreamSize(Polygon geometry, int coordinateSpace)
         {
+            if (geometry.IsEmpty) return 4;
+
             // int length
             int result = 4;
+
+            // shell ordinates
             result += GetByteStreamSize(geometry.ExteriorRing, coordinateSpace);
 
+            // holes and their ordinates
             var holes = geometry.Holes;
             for (int i = 0; i < holes.Length; i++)
-            {
                 result += GetByteStreamSize(holes[i], coordinateSpace);
-            }
 
             return result;
         }
@@ -576,21 +586,11 @@ namespace NetTopologySuite.IO
 
         private static Ordinates CheckOrdinates(CoordinateSequence sequence)
         {
-            if (sequence == null || sequence.Count == 0)
-            {
-                return Ordinates.None;
-            }
+            if (sequence == null) return Ordinates.None;
 
             var result = Ordinates.XY;
-            if (sequence.HasZ && !double.IsNaN(sequence.GetZ(0)))
-            {
-                result |= Ordinates.Z;
-            }
-
-            if (sequence.HasM && !double.IsNaN(sequence.GetM(0)))
-            {
-                result |= Ordinates.M;
-            }
+            if (sequence.HasZ) result |= Ordinates.Z;
+            if (sequence.HasM) result |= Ordinates.M;
 
             return result;
         }

@@ -96,14 +96,16 @@ namespace NetTopologySuite.IO.PostGis.Test
             return b;
         }
 
+        [TestCase("SRID=4326;POINT (10 11)")]
         [TestCase("POINT (10 11)")]
         [TestCase("POINT Z (10 11 12)")]
-        [TestCase("POINT M (10 11 13)", "Bug in WKTReader")]
+        [TestCase("POINT M (10 11 13)")]
         [TestCase("POINT ZM (10 11 12 13)")]
         [TestCase("POLYGON EMPTY")]
         [TestCase("POLYGON Z EMPTY")]
         [TestCase("POLYGON M EMPTY")]
         [TestCase("POLYGON ZM EMPTY")]
+        [TestCase("GEOMETRYCOLLECTION M(POINT M(10 11), LINESTRING M(10 11, 20 21), POLYGON M EMPTY")]
         public void TestByEWkt(string wkt, string ignoreReason = null)
         {
             // Ignore?
@@ -111,8 +113,7 @@ namespace NetTopologySuite.IO.PostGis.Test
                 Assert.Ignore(ignoreReason);
 
             // Arrange
-            var rdr = new WKTReader(NtsGeometryServices.Instance.CreateGeometryFactory());
-            var geom = rdr.Read(wkt);
+            var pgr = new PostGisReader(NtsGeometryServices.Instance.CreateGeometryFactory());
             var pgw = new PostGisWriter { HandleOrdinates = Ordinates.XYZM };
             
             byte[] postgisBuffer = null;
@@ -135,8 +136,18 @@ namespace NetTopologySuite.IO.PostGis.Test
                 Assert.Fail(e.Message);
             }
 
-            byte[] writerBuffer = pgw.Write(geom);
-            Assert.That(writerBuffer, Is.EqualTo(postgisBuffer));
+            // Reader
+            Geometry geom = null;
+            Assert.That(() => geom = pgr.Read(postgisBuffer), Throws.Nothing);
+            Assert.That(geom, Is.Not.Null);
+
+            // Writer
+            byte[] postgisWriterBuffer = null;
+            Assert.That(() => postgisWriterBuffer = pgw.Write(geom), Throws.Nothing);
+            Assert.That(postgisWriterBuffer, Is.Not.Null);
+
+            // Equality
+            Assert.That(postgisWriterBuffer, Is.EqualTo(postgisBuffer));
         }
     }
 }

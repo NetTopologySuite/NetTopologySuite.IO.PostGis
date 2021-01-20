@@ -321,6 +321,9 @@ namespace NetTopologySuite.IO
         protected Polygon ReadPolygon(BinaryReader reader, GeometryFactory factory, Ordinates ordinates)
         {
             int numRings = reader.ReadInt32();
+            if (numRings == 0)
+                return _factory.CreatePolygon(_coordinateSequenceFactory.Create(0, ordinates));
+
             var exteriorRing = ReadLinearRing(reader, factory, ordinates);
             var interiorRings = new LinearRing[numRings - 1];
             for (int i = 0; i < interiorRings.Length; i++)
