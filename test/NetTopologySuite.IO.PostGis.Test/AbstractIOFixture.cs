@@ -28,7 +28,7 @@ namespace NetTopologySuite.IO.PostGis.Test
 
         public int Counter { get { return ++_counter; } }
 
-        [SetUp]
+        [OneTimeSetUp]
         public virtual void OnFixtureSetUp()
         {
             try
@@ -42,7 +42,7 @@ namespace NetTopologySuite.IO.PostGis.Test
             }
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public virtual void OnFixtureTearDown() { }
 
         private void CheckAppConfigPresent()

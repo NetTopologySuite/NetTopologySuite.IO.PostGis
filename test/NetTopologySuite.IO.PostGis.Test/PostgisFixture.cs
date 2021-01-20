@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 
 using NetTopologySuite.Geometries;
 
@@ -18,7 +19,7 @@ namespace NetTopologySuite.IO.PostGis.Test
             // NOTE: insert a valid connection string to a postgis db
             if (kvcc["PostGisConnectionString"] == null)
             {
-                kvcc.Add("PostGisConnectionString", "Host=ivv-t3s.ivv-aachen.de;Port=5432;Database=obe;Integrated Security=true;");
+                kvcc.Add("PostGisConnectionString", "Host=ivv-t3s.ivv.lan;Port=5432;Database=obe;Integrated Security=true;");
             }
         }
 
@@ -93,6 +94,49 @@ namespace NetTopologySuite.IO.PostGis.Test
             }
 
             return b;
+        }
+
+        [TestCase("POINT (10 11)")]
+        [TestCase("POINT Z (10 11 12)")]
+        [TestCase("POINT M (10 11 13)", "Bug in WKTReader")]
+        [TestCase("POINT ZM (10 11 12 13)")]
+        [TestCase("POLYGON EMPTY")]
+        [TestCase("POLYGON Z EMPTY")]
+        [TestCase("POLYGON M EMPTY")]
+        [TestCase("POLYGON ZM EMPTY")]
+        public void TestByEWkt(string wkt, string ignoreReason = null)
+        {
+            // Ignore?
+            if (!string.IsNullOrEmpty(ignoreReason))
+                Assert.Ignore(ignoreReason);
+
+            // Arrange
+            var rdr = new WKTReader(NtsGeometryServices.Instance.CreateGeometryFactory());
+            var geom = rdr.Read(wkt);
+            var pgw = new PostGisWriter { HandleOrdinates = Ordinates.XYZM };
+            
+            byte[] postgisBuffer = null;
+            try
+            {
+
+                using (var cn = new NpgsqlConnection(ConnectionString))
+                {
+                    cn.Open();
+                    var cm = cn.CreateCommand();
+                    cm.CommandText = "SELECT ST_AsEWKB(ST_GeomFromText(@P0));";
+                    var p = cm.Parameters.Add("P0", NpgsqlDbType.Varchar);
+                    p.Value = wkt;
+
+                    postgisBuffer = (byte[]) cm.ExecuteScalar();
+                }
+            }
+            catch (Exception e)
+            {
+                Assert.Fail(e.Message);
+            }
+
+            byte[] writerBuffer = pgw.Write(geom);
+            Assert.That(writerBuffer, Is.EqualTo(postgisBuffer));
         }
     }
 }

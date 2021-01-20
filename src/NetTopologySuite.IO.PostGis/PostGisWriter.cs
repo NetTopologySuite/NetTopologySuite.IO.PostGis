@@ -65,7 +65,7 @@ namespace NetTopologySuite.IO
         public byte[] Write(Geometry geometry)
         {
             var maxCoords = HandleOrdinates == Ordinates.None ? Ordinates.XYZM : HandleOrdinates;
-            int coordinateSpace = 8 * OrdinatesUtility.OrdinatesToDimension(maxCoords);
+            int coordinateSpace = 8 * OrdinatesUtility.OrdinatesToDimension(maxCoords & CheckOrdinates(geometry));
             byte[] bytes = GetBytes(geometry, coordinateSpace);
             Write(geometry, new MemoryStream(bytes));
 
