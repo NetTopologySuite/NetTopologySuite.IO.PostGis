@@ -98,39 +98,43 @@ namespace NetTopologySuite.IO
             {
                 ordinates &= HandleOrdinates;
             }
+            Write(geometry, ordinates, byteOrder, true, writer);
+        }
 
+        private void Write(Geometry geometry, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
+        {
             switch (geometry)
             {
                 case Point point:
-                    Write(point, ordinates, byteOrder, writer);
+                    Write(point, ordinates, byteOrder, emitSRID, writer);
                     break;
 
                 case LinearRing linearRing:
-                    Write(linearRing, ordinates, byteOrder, writer);
+                    Write(linearRing, ordinates, byteOrder, emitSRID, writer);
                     break;
 
                 case LineString lineString:
-                    Write(lineString, ordinates, byteOrder, writer);
+                    Write(lineString, ordinates, byteOrder, emitSRID, writer);
                     break;
 
                 case Polygon polygon:
-                    Write(polygon, ordinates, byteOrder, writer);
+                    Write(polygon, ordinates, byteOrder, emitSRID, writer);
                     break;
 
                 case MultiPoint multiPoint:
-                    Write(multiPoint, ordinates, byteOrder, writer);
+                    Write(multiPoint, ordinates, byteOrder, emitSRID, writer);
                     break;
 
                 case MultiLineString multiLineString:
-                    Write(multiLineString, ordinates, byteOrder, writer);
+                    Write(multiLineString, ordinates, byteOrder, emitSRID, writer);
                     break;
 
                 case MultiPolygon multiPolygon:
-                    Write(multiPolygon, ordinates, byteOrder, writer);
+                    Write(multiPolygon, ordinates, byteOrder, emitSRID, writer);
                     break;
 
                 case GeometryCollection geometryCollection:
-                    Write(geometryCollection, ordinates, byteOrder, writer);
+                    Write(geometryCollection, ordinates, byteOrder, emitSRID, writer);
                     break;
 
                 default:
@@ -141,12 +145,14 @@ namespace NetTopologySuite.IO
         /// <summary>
         /// Writes the binary encoded PostGIS header.
         /// </summary>
-        /// <param name="byteOrder">The byte order specified.</param>
         /// <param name="type">The PostGIS geometry type.</param>
         /// <param name="srid">The spatial reference of the geometry</param>
+        /// <param name="emitSrid">Flag indicating that <paramref name="srid"/> should be written</param>
         /// <param name="ordinates"></param>
+        /// <param name="byteOrder">The byte order specified.</param>
         /// <param name="writer">The writer to use.</param>
-        private static void WriteHeader(PostGisGeometryType type, int srid, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private static void WriteHeader(PostGisGeometryType type, int srid, bool emitSrid, Ordinates ordinates, ByteOrder byteOrder,
+            BinaryWriter writer)
         {
             writer.Write((byte)byteOrder);
 
@@ -163,14 +169,15 @@ namespace NetTopologySuite.IO
                 typeword |= 0x40000000;
             }
 
-            if (srid != -1)
+            emitSrid &= srid > 0;
+            if (emitSrid)
             {
                 typeword |= 0x20000000;
             }
 
             writer.Write(typeword);
 
-            if (srid != -1)
+            if (emitSrid)
             {
                 writer.Write(srid);
             }
@@ -210,15 +217,16 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        ///
+        /// 
         /// </summary>
-        /// <param name="byteOrder"></param>
         /// <param name="point"></param>
         /// <param name="ordinates"></param>
+        /// <param name="byteOrder"></param>
+        /// <param name="emitSRID"></param>
         /// <param name="writer"></param>
-        private void Write(Point point, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(Point point, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.Point, point.SRID, ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.Point, point.SRID, emitSRID, ordinates, byteOrder, writer);
             Write(point.CoordinateSequence, ordinates, writer, true);
         }
 
@@ -233,20 +241,21 @@ namespace NetTopologySuite.IO
         {
             for (int i = 0; i < geometries.Length; i++)
             {
-                Write(geometries[i], byteOrder, writer);
+                Write(geometries[i], ordinates, byteOrder, false, writer);
             }
         }
 
         /// <summary>
-        ///
+        /// 
         /// </summary>
         /// <param name="lineString"></param>
         /// <param name="ordinates"></param>
         /// <param name="byteOrder">The byte order.</param>
+        /// <param name="emitSRID"></param>
         /// <param name="writer"></param>
-        private void Write(LineString lineString, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(LineString lineString, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.LineString, lineString.SRID, ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.LineString, lineString.SRID, emitSRID, ordinates, byteOrder, writer);
             Write(lineString.CoordinateSequence, ordinates, writer, false);
         }
 
@@ -267,11 +276,12 @@ namespace NetTopologySuite.IO
         /// <param name="polygon">The polygon to write.</param>
         /// <param name="ordinates">The ordinates to write. <see cref="Ordinates.XY"/> are always written.</param>
         /// <param name="byteOrder">The byte order.</param>
+        /// <param name="emitSRID">A flag indicating if <see cref="Geometry.SRID"/> value should be emitted.</param>
         /// <param name="writer">The writer to use.</param>
-        private void Write(Polygon polygon, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(Polygon polygon, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
             WriteHeader(PostGisGeometryType.Polygon,
-                polygon.SRID,
+                polygon.SRID, emitSRID,
                 ordinates, byteOrder, writer);
 
             // If polygon is empty, simply write 0
@@ -297,11 +307,12 @@ namespace NetTopologySuite.IO
         /// <param name="multiPoint">The polygon to write.</param>
         /// <param name="ordinates">The ordinates to write. <see cref="Ordinates.XY"/> are always written.</param>
         /// <param name="byteOrder">The byte order.</param>
+        /// <param name="emitSRID">A flag indicating if <see cref="Geometry.SRID"/> value should be emitted.</param>
         /// <param name="writer">The writer to use.</param>
-        private void Write(MultiPoint multiPoint, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(MultiPoint multiPoint, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
             WriteHeader(PostGisGeometryType.MultiPoint,
-                multiPoint.SRID,
+                multiPoint.SRID, emitSRID,
                 ordinates, byteOrder, writer);
             writer.Write(multiPoint.NumGeometries);
             Write(multiPoint.Geometries, ordinates, byteOrder, writer);
@@ -313,10 +324,11 @@ namespace NetTopologySuite.IO
         /// <param name="multiLineString">The linestring to write.</param>
         /// <param name="ordinates">The ordinates to write. <see cref="Ordinates.XY"/> are always written.</param>
         /// <param name="byteOrder">The byte order.</param>
+        /// <param name="emitSRID">A flag indicating if <see cref="Geometry.SRID"/> value should be emitted.</param>
         /// <param name="writer">The writer to use.</param>
-        private void Write(MultiLineString multiLineString, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(MultiLineString multiLineString, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.MultiLineString, multiLineString.SRID, ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.MultiLineString, multiLineString.SRID, emitSRID, ordinates, byteOrder, writer);
             writer.Write(multiLineString.NumGeometries);
             Write(multiLineString.Geometries, ordinates, byteOrder, writer);
         }
@@ -327,10 +339,11 @@ namespace NetTopologySuite.IO
         /// <param name="multiPolygon">The polygon to write.</param>
         /// <param name="ordinates">The ordinates to write. <see cref="Ordinates.XY"/> are always written.</param>
         /// <param name="byteOrder">The byte order.</param>
+        /// <param name="emitSRID">A flag indicating if <see cref="Geometry.SRID"/> value should be emitted.</param>
         /// <param name="writer">The writer to use.</param>
-        private void Write(MultiPolygon multiPolygon, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(MultiPolygon multiPolygon, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.MultiPolygon, multiPolygon.SRID, ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.MultiPolygon, multiPolygon.SRID, emitSRID, ordinates, byteOrder, writer);
             writer.Write(multiPolygon.NumGeometries);
             Write(multiPolygon.Geometries, ordinates, byteOrder, writer);
         }
@@ -341,10 +354,11 @@ namespace NetTopologySuite.IO
         /// <param name="geomCollection">The polygon to write.</param>
         /// <param name="ordinates">The ordinates to write. <see cref="Ordinates.XY"/> are always written.</param>
         /// <param name="byteOrder">The byte order.</param>
+        /// <param name="emitSRID">A flag indicating if <see cref="Geometry.SRID"/> value should be emitted.</param>
         /// <param name="writer">The writer to use.</param>
-        private void Write(GeometryCollection geomCollection, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
+        private void Write(GeometryCollection geomCollection, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.GeometryCollection, geomCollection.SRID, ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.GeometryCollection, geomCollection.SRID, emitSRID, ordinates, byteOrder, writer);
             writer.Write(geomCollection.NumGeometries);
             Write(geomCollection.Geometries, ordinates, byteOrder, writer);
         }
@@ -358,7 +372,7 @@ namespace NetTopologySuite.IO
         /// <returns></returns>
         private byte[] GetBytes(Geometry geometry, int coordinateSpace)
         {
-            return new byte[GetByteStreamSize(geometry, coordinateSpace)];
+            return new byte[GetByteStreamSize(geometry, coordinateSpace, true)];
         }
 
         /// <summary>
@@ -367,7 +381,7 @@ namespace NetTopologySuite.IO
         /// <param name="geometry">The geometry to write</param>
         /// <param name="coordinateSpace">The size for each ordinate entry.</param>
         /// <returns>The size</returns>
-        private int GetByteStreamSize(Geometry geometry, int coordinateSpace)
+        private int GetByteStreamSize(Geometry geometry, int coordinateSpace, bool emitSRID)
         {
             int result = 0;
 
@@ -377,7 +391,8 @@ namespace NetTopologySuite.IO
             // write typeword
             result += 4;
 
-            if (geometry.SRID != -1)
+            emitSRID &= geometry.SRID > 0;
+            if (emitSRID)
             {
                 result += 4;
             }
@@ -468,7 +483,7 @@ namespace NetTopologySuite.IO
             if (geometry.NumPoints > 0)
             {
                 // We can shortcut here, as all subgeoms have the same fixed size
-                result += geometry.NumPoints * GetByteStreamSize(geometry.GetGeometryN(0), coordinateSpace);
+                result += geometry.NumPoints * GetByteStreamSize(geometry.GetGeometryN(0), coordinateSpace, false);
             }
 
             return result;
@@ -509,7 +524,7 @@ namespace NetTopologySuite.IO
             int result = 0;
             for (int i = 0; i < container.Length; i++)
             {
-                result += GetByteStreamSize(container[i], coordinateSpace);
+                result += GetByteStreamSize(container[i], coordinateSpace, false);
             }
 
             return result;

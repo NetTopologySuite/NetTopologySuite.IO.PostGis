@@ -97,6 +97,9 @@ namespace NetTopologySuite.IO.PostGis.Test
         }
 
         [TestCase("SRID=4326;POINT (10 11)")]
+        [TestCase("SRID=1;POINT (10 11)")]
+        [TestCase("SRID=0;POINT (10 11)")]
+        [TestCase("SRID=-1;POINT (10 11)")]
         [TestCase("POINT (10 11)")]
         [TestCase("POINT Z (10 11 12)")]
         [TestCase("POINT M (10 11 13)")]
@@ -105,8 +108,10 @@ namespace NetTopologySuite.IO.PostGis.Test
         [TestCase("POLYGON Z EMPTY")]
         [TestCase("POLYGON M EMPTY")]
         [TestCase("POLYGON ZM EMPTY")]
-        [TestCase("GEOMETRYCOLLECTION M(POINT M(10 11), LINESTRING M(10 11, 20 21), POLYGON M EMPTY")]
-        public void TestByEWkt(string wkt, string ignoreReason = null)
+        [TestCase("GEOMETRYCOLLECTION M(POINT M(10 11 13), LINESTRING M(10 11 13, 20 21 23), POLYGON M EMPTY)")]
+        [TestCase("SRID=25832;MULTIPOINT Z((10 11 13), (20 21 23), EMPTY, (30 31 33))")]
+        [TestCase("SRID=31466;MULTILINESTRING Z((10 11 12, 20 21 22), EMPTY, (30 31 32, 20 21 22))")]
+        public void TestByEWkt(string ewkt, string ignoreReason = null)
         {
             // Ignore?
             if (!string.IsNullOrEmpty(ignoreReason))
@@ -126,7 +131,7 @@ namespace NetTopologySuite.IO.PostGis.Test
                     var cm = cn.CreateCommand();
                     cm.CommandText = "SELECT ST_AsEWKB(ST_GeomFromText(@P0));";
                     var p = cm.Parameters.Add("P0", NpgsqlDbType.Varchar);
-                    p.Value = wkt;
+                    p.Value = ewkt;
 
                     postgisBuffer = (byte[]) cm.ExecuteScalar();
                 }
