@@ -3,7 +3,9 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Geometries.Implementation;
 
 namespace NetTopologySuite.IO
 {
@@ -251,10 +253,24 @@ namespace NetTopologySuite.IO
                 outputOrdinates &= HandleOrdinates;
             }
 
-            var sequence = factory.Create(numPoints, outputOrdinates);
-
             bool receivedZ = receivedOrdinates.HasFlag(Ordinates.Z);
             bool receivedM = receivedOrdinates.HasFlag(Ordinates.M);
+
+            if (factory is PackedCoordinateSequenceFactory packedFactory &&
+                reader is BiEndianBinaryReader biReader &&
+                biReader.Endianess == ByteOrder.LittleEndian)
+            {
+                int dimension = 2;
+                if (receivedZ)
+                    dimension++;
+                if (receivedM)
+                    dimension++;
+                byte[] bytes = reader.ReadBytes(8 * numPoints * dimension);
+                double[] doubles = MemoryMarshal.Cast<byte, double>(bytes).ToArray();
+                return packedFactory.Create(doubles, dimension);
+            }
+
+            var sequence = factory.Create(numPoints, outputOrdinates);
             bool outputtingZ = outputOrdinates.HasFlag(Ordinates.Z) && sequence.HasZ;
             bool outputtingM = outputOrdinates.HasFlag(Ordinates.M) && sequence.HasM;
 

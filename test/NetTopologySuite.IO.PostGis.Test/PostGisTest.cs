@@ -1,7 +1,7 @@
 ﻿using System;
 
 using NetTopologySuite.Geometries;
-
+using NetTopologySuite.Geometries.Implementation;
 using NUnit.Framework;
 
 namespace NetTopologySuite.IO.PostGis.Test
@@ -111,7 +111,7 @@ namespace NetTopologySuite.IO.PostGis.Test
         // The srid we use for the srid tests
         public static int SRID = 4326;
 
-        private static readonly PostGisReader br = new PostGisReader();
+        private static readonly PostGisReader br = new PostGisReader(new PackedCoordinateSequenceFactory(), new PrecisionModel());
         private static readonly WKTReader wr = new WKTReader();
 
         /// <summary>
