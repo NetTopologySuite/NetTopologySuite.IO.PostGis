@@ -258,7 +258,7 @@ namespace NetTopologySuite.IO
 
             if (factory is PackedCoordinateSequenceFactory packedFactory &&
                 reader is BiEndianBinaryReader biReader &&
-                biReader.Endianess == ByteOrder.LittleEndian)
+                biReader.Endianess == ByteOrder.LittleEndian == BitConverter.IsLittleEndian)
             {
                 int dimension = 2;
                 if (receivedZ)
