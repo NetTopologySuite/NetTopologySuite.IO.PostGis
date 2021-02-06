@@ -257,6 +257,7 @@ namespace NetTopologySuite.IO
             bool receivedM = receivedOrdinates.HasFlag(Ordinates.M);
 
             if (factory is PackedCoordinateSequenceFactory packedFactory &&
+                packedFactory.Type == PackedCoordinateSequenceFactory.PackedType.Double &&
                 reader is BiEndianBinaryReader biReader &&
                 biReader.Endianess == ByteOrder.LittleEndian == BitConverter.IsLittleEndian)
             {
