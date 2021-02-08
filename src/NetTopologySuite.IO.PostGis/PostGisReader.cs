@@ -201,7 +201,10 @@ namespace NetTopologySuite.IO
         /// <returns>The Point.</returns>
         protected Point ReadPoint(BinaryReader reader, GeometryFactory factory, Ordinates receivedOrdinates)
         {
-            return factory.CreatePoint(ReadCoordinateSequence(reader, factory.CoordinateSequenceFactory, factory.PrecisionModel, 1, receivedOrdinates));
+            var seq = ReadCoordinateSequence(reader, factory.CoordinateSequenceFactory, factory.PrecisionModel, 1, receivedOrdinates);
+            if (double.IsNaN(seq.GetX(0)))
+                return factory.CreatePoint(factory.CoordinateSequenceFactory.Create(0, receivedOrdinates));
+            return factory.CreatePoint(seq);
         }
 
         /// <summary>

@@ -96,14 +96,24 @@ namespace NetTopologySuite.IO.PostGis.Test
             return b;
         }
 
+        [Test, Explicit]
+        public void TestInt64PostGisNaN()
+        {
+            byte[] buffer = new byte[] {0, 0, 0, 0, 0, 0, 248, 127};
+            TestContext.Write(BitConverter.ToInt64(buffer));
+            
+        }
+
         [TestCase("SRID=4326;POINT (10 11)")]
         [TestCase("SRID=1;POINT (10 11)")]
         [TestCase("SRID=0;POINT (10 11)")]
         [TestCase("SRID=-1;POINT (10 11)")]
+        [TestCase("POINT EMPTY")]
         [TestCase("POINT (10 11)")]
         [TestCase("POINT Z (10 11 12)")]
         [TestCase("POINT M (10 11 13)")]
         [TestCase("POINT ZM (10 11 12 13)")]
+        [TestCase("LINESTRING EMPTY")]
         [TestCase("POLYGON EMPTY")]
         [TestCase("POLYGON Z EMPTY")]
         [TestCase("POLYGON M EMPTY")]
@@ -111,6 +121,7 @@ namespace NetTopologySuite.IO.PostGis.Test
         [TestCase("GEOMETRYCOLLECTION M(POINT M(10 11 13), LINESTRING M(10 11 13, 20 21 23), POLYGON M EMPTY)")]
         [TestCase("SRID=25832;MULTIPOINT Z((10 11 13), (20 21 23), EMPTY, (30 31 33))")]
         [TestCase("SRID=31466;MULTILINESTRING Z((10 11 12, 20 21 22), EMPTY, (30 31 32, 20 21 22))")]
+        [TestCase("POLYGON ZM((10 10 0 7,20 10 0 7,20 20 0 7,20 10 0 7,10 10 0 7),(5 5 0 7,5 6 0 7,6 6 0 7,6 5 0 7,5 5 0 7))")]
         public void TestByEWkt(string ewkt, string ignoreReason = null)
         {
             // Ignore?

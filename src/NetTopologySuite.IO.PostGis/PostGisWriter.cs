@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Utilities;
 
@@ -151,8 +150,8 @@ namespace NetTopologySuite.IO
         /// <param name="ordinates"></param>
         /// <param name="byteOrder">The byte order specified.</param>
         /// <param name="writer">The writer to use.</param>
-        private static void WriteHeader(PostGisGeometryType type, int srid, bool emitSrid, Ordinates ordinates, ByteOrder byteOrder,
-            BinaryWriter writer)
+        private static void WriteHeader(PostGisGeometryType type, int srid, bool emitSrid, Ordinates ordinates,
+            ByteOrder byteOrder, BinaryWriter writer)
         {
             writer.Write((byte)byteOrder);
 
@@ -185,20 +184,42 @@ namespace NetTopologySuite.IO
 
         private static void Write(CoordinateSequence sequence, Ordinates ordinates, BinaryWriter writer, bool justOne)
         {
-            if (sequence == null || sequence.Count == 0)
+            if (sequence == null)
+                throw new ArgumentNullException(nameof(sequence));
+
+            // Handle empty multi-coordinate geometries
+            if (sequence.Count == 0)
             {
-                return;
+                if (!justOne)
+                {
+                    writer.Write(0);
+                    return;
+                }
             }
 
+            // Get which ordinates to write
+            bool writeZ = ordinates.HasFlag(Ordinates.Z);
+            bool writeM = ordinates.HasFlag(Ordinates.M);
+
+            // Write length if not points
             int length = 1;
             if (!justOne)
             {
                 length = sequence.Count;
                 writer.Write(length);
             }
-
-            bool writeZ = ordinates.HasFlag(Ordinates.Z);
-            bool writeM = ordinates.HasFlag(Ordinates.M);
+            // Write empty point
+            else if (sequence.Count == 0)
+            {
+                const long postgisNaN = 9221120237041090560;
+                writer.Write(postgisNaN);
+                writer.Write(postgisNaN);
+                if (writeZ)
+                    writer.Write(postgisNaN);
+                if (writeM)
+                    writer.Write(postgisNaN);
+                return;
+            }
 
             for (int i = 0; i < length; i++)
             {
@@ -280,9 +301,7 @@ namespace NetTopologySuite.IO
         /// <param name="writer">The writer to use.</param>
         private void Write(Polygon polygon, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.Polygon,
-                polygon.SRID, emitSRID,
-                ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.Polygon, polygon.SRID, emitSRID, ordinates, byteOrder, writer);
 
             // If polygon is empty, simply write 0
             if (polygon.IsEmpty)
@@ -311,9 +330,7 @@ namespace NetTopologySuite.IO
         /// <param name="writer">The writer to use.</param>
         private void Write(MultiPoint multiPoint, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
-            WriteHeader(PostGisGeometryType.MultiPoint,
-                multiPoint.SRID, emitSRID,
-                ordinates, byteOrder, writer);
+            WriteHeader(PostGisGeometryType.MultiPoint, multiPoint.SRID, emitSRID, ordinates, byteOrder, writer);
             writer.Write(multiPoint.NumGeometries);
             Write(multiPoint.Geometries, ordinates, byteOrder, writer);
         }
@@ -380,6 +397,7 @@ namespace NetTopologySuite.IO
         /// </summary>
         /// <param name="geometry">The geometry to write</param>
         /// <param name="coordinateSpace">The size for each ordinate entry.</param>
+        /// <param name="emitSRID">Flag indicating if srid value should be written</param>
         /// <returns>The size</returns>
         private int GetByteStreamSize(Geometry geometry, int coordinateSpace, bool emitSRID)
         {
@@ -480,10 +498,11 @@ namespace NetTopologySuite.IO
         {
             // int size
             int result = 4;
-            if (geometry.NumPoints > 0)
+            // Note: Not NumPoints, as empty points hold no coordinate!
+            if (geometry.NumGeometries > 0)
             {
                 // We can shortcut here, as all subgeoms have the same fixed size
-                result += geometry.NumPoints * GetByteStreamSize(geometry.GetGeometryN(0), coordinateSpace, false);
+                result += geometry.NumGeometries * GetByteStreamSize(geometry.GetGeometryN(0), coordinateSpace, false);
             }
 
             return result;
