@@ -226,7 +226,11 @@ namespace NetTopologySuite.IO
             if (sequence is PackedDoubleCoordinateSequence packedSequence &&
                 byteOrder == ByteOrder.LittleEndian == BitConverter.IsLittleEndian)
             {
-                writer.Write(MemoryMarshal.Cast<double, byte>(packedSequence.GetRawCoordinates()).ToArray());
+#if NETSTANDARD2_1
+                writer.Write(MemoryMarshal.AsBytes<double>(packedSequence.GetRawCoordinates()));
+#else
+                writer.Write(MemoryMarshal.AsBytes<double>(packedSequence.GetRawCoordinates()).ToArray());
+#endif
             }
             else
             {
