@@ -43,5 +43,5 @@ jobs:
       run: dotnet build -c Release --no-restore
     - name: Test
       env:
-        SUPER_SECRET: ${{ secrets.SuperSecret }}
-      run: dotnet test -c Release --no-build --verbosity normal -- TestRunParameters.Parameter\(name=\"password\",\ value=\"$SUPER_SECRET\"\) 
+        SUPER_SECRET: ${{ secrets.POSTGRESQL_USER_PASSWORD }}
+      run: dotnet test -c Release --no-build --verbosity normal -- TestRunParameters.Parameter(name=\"password\", value=\"$SUPER_SECRET\"\) 
