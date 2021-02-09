@@ -264,13 +264,17 @@ namespace NetTopologySuite.IO
                 biReader.Endianess == ByteOrder.LittleEndian == BitConverter.IsLittleEndian)
             {
                 int dimension = 2;
+                int measure = 0;
                 if (receivedZ)
                     dimension++;
                 if (receivedM)
+                {
                     dimension++;
+                    measure++;
+                }
                 byte[] bytes = reader.ReadBytes(8 * numPoints * dimension);
                 double[] doubles = MemoryMarshal.Cast<byte, double>(bytes).ToArray();
-                return packedFactory.Create(doubles, dimension);
+                return packedFactory.Create(doubles, dimension, measure);
             }
 
             var sequence = factory.Create(numPoints, outputOrdinates);
