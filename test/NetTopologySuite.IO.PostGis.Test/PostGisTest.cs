@@ -1,5 +1,7 @@
 ﻿using System;
-
+using System.Collections;
+using System.Collections.Generic;
+using System.Net;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Implementation;
 using NUnit.Framework;
@@ -94,7 +96,7 @@ namespace NetTopologySuite.IO.PostGis.Test
                 // new (correct) representation
                 "GEOMETRYCOLLECTION EMPTY",
                 // new (correct) representation - does not work on 0.X
-//              "POINT EMPTY",
+                "POINT EMPTY",
                 // new (correct) representation - does not work on 0.X
                 "LINESTRING EMPTY",
                 // new (correct) representation - does not work on 0.X
@@ -111,19 +113,29 @@ namespace NetTopologySuite.IO.PostGis.Test
         // The srid we use for the srid tests
         public static int SRID = 4326;
 
-        private static readonly PostGisReader br = new PostGisReader(new PackedCoordinateSequenceFactory(), new PrecisionModel());
+        //private PostGisReader br = new PostGisReader(PackedCoordinateSequenceFactory.DoubleFactory, new PrecisionModel());
+        private static readonly PrecisionModel pm = new PrecisionModel();
         private static readonly WKTReader wr = new WKTReader();
+
+        static IEnumerable<CoordinateSequenceFactory> TestFactories( )
+        {
+            yield return CoordinateArraySequenceFactory.Instance;
+            yield return PackedCoordinateSequenceFactory.DoubleFactory;
+            yield return PackedCoordinateSequenceFactory.FloatFactory;
+            yield return DotSpatialAffineCoordinateSequenceFactory.Instance;
+        }
 
         /// <summary>
         /// 
         /// </summary>
-        [Test]
-        public void General()
+        [TestCaseSource(nameof(TestFactories))]
+        public void General(CoordinateSequenceFactory factory)
         {
+            var geomFactory = new GeometryFactory(pm, 0, factory);
             for (int i = 0; i < testset.Length; i++)
             {
-                General(testset[i], -1);
-                General(testset[i], SRID);
+                General(geomFactory, testset[i], -1);
+                General(geomFactory, testset[i], SRID);
             }
         }
 
@@ -132,9 +144,10 @@ namespace NetTopologySuite.IO.PostGis.Test
         /// </summary>
         /// <param name="wkt"></param>
         /// <param name="srid"></param>
-        private static void General(string wkt, int srid)
+        private static void General(GeometryFactory geomFactory, string wkt, int srid)
         {
-            var geom = wr.Read(wkt);
+            var wktReader = new WKTReader(geomFactory);
+            var geom = wktReader.Read(wkt);
             string parsed = geom.AsText();
             var regeom = wr.Read(parsed);
             string reparsed = regeom.AsText();
@@ -145,15 +158,15 @@ namespace NetTopologySuite.IO.PostGis.Test
             Assert.IsTrue(geom.EqualsExact(regeom));
             Assert.AreEqual(parsed, reparsed);
 
+            var pgr = new PostGisReader(geomFactory);
             byte[] bytesB = new PostGisWriter(ByteOrder.BigEndian).Write(regeom);
-            var regeom2 = br.Read(bytesB);
+            var regeom2 = pgr.Read(bytesB);
             Assert.IsTrue(geom.EqualsExact(regeom2));
 
             byte[] bytesL = new PostGisWriter(ByteOrder.LittleEndian).Write(regeom);
-            var regeom3 = br.Read(bytesL);
+            var regeom3 = pgr.Read(bytesL);
             Assert.IsTrue(geom.EqualsExact(regeom3));
             Assert.IsTrue(regeom2.EqualsExact(regeom3));
-
 
             Assert.AreEqual(bytesB.Length, bytesL.Length);
         }
