@@ -3,7 +3,9 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Geometries.Implementation;
 using NetTopologySuite.Utilities;
 
 namespace NetTopologySuite.IO
@@ -182,7 +184,7 @@ namespace NetTopologySuite.IO
             }
         }
 
-        private static void Write(CoordinateSequence sequence, Ordinates ordinates, BinaryWriter writer, bool justOne)
+        private static void Write(CoordinateSequence sequence, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer, bool justOne)
         {
             if (sequence == null)
                 throw new ArgumentNullException(nameof(sequence));
@@ -221,18 +223,30 @@ namespace NetTopologySuite.IO
                 return;
             }
 
-            for (int i = 0; i < length; i++)
+            if (sequence is PackedDoubleCoordinateSequence packedSequence &&
+                byteOrder == ByteOrder.LittleEndian == BitConverter.IsLittleEndian)
             {
-                writer.Write(sequence.GetX(i));
-                writer.Write(sequence.GetY(i));
-                if (writeZ)
+#if NETSTANDARD2_1
+                writer.Write(MemoryMarshal.AsBytes<double>(packedSequence.GetRawCoordinates()));
+#else
+                writer.Write(MemoryMarshal.AsBytes<double>(packedSequence.GetRawCoordinates()).ToArray());
+#endif
+            }
+            else
+            {
+                for (int i = 0; i < length; i++)
                 {
-                    writer.Write(sequence.GetZ(i));
-                }
+                    writer.Write(sequence.GetX(i));
+                    writer.Write(sequence.GetY(i));
+                    if (writeZ)
+                    {
+                        writer.Write(sequence.GetZ(i));
+                    }
 
-                if (writeM)
-                {
-                    writer.Write(sequence.GetM(i));
+                    if (writeM)
+                    {
+                        writer.Write(sequence.GetM(i));
+                    }
                 }
             }
         }
@@ -248,7 +262,7 @@ namespace NetTopologySuite.IO
         private void Write(Point point, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
             WriteHeader(PostGisGeometryType.Point, point.SRID, emitSRID, ordinates, byteOrder, writer);
-            Write(point.CoordinateSequence, ordinates, writer, true);
+            Write(point.CoordinateSequence, ordinates, byteOrder, writer, true);
         }
 
         /// <summary>
@@ -277,7 +291,7 @@ namespace NetTopologySuite.IO
         private void Write(LineString lineString, Ordinates ordinates, ByteOrder byteOrder, bool emitSRID, BinaryWriter writer)
         {
             WriteHeader(PostGisGeometryType.LineString, lineString.SRID, emitSRID, ordinates, byteOrder, writer);
-            Write(lineString.CoordinateSequence, ordinates, writer, false);
+            Write(lineString.CoordinateSequence, ordinates, byteOrder, writer, false);
         }
 
         /// <summary>
@@ -285,10 +299,11 @@ namespace NetTopologySuite.IO
         /// </summary>
         /// <param name="linearRing"></param>
         /// <param name="ordinates"></param>
+        /// <param name="byteOrder"></param>
         /// <param name="writer"></param>
-        private void Write(LinearRing linearRing, Ordinates ordinates, BinaryWriter writer)
+        private void Write(LinearRing linearRing, Ordinates ordinates, ByteOrder byteOrder, BinaryWriter writer)
         {
-            Write(linearRing.CoordinateSequence, ordinates, writer, false);
+            Write(linearRing.CoordinateSequence, ordinates, byteOrder, writer, false);
         }
 
         /// <summary>
@@ -313,10 +328,10 @@ namespace NetTopologySuite.IO
             var holes = polygon.Holes;
             writer.Write(holes.Length + 1);
 
-            Write(polygon.Shell, ordinates, writer);
+            Write(polygon.Shell, ordinates, byteOrder, writer);
             for (int i = 0; i < holes.Length; i++)
             {
-                Write(holes[i], ordinates, writer);
+                Write(holes[i], ordinates, byteOrder, writer);
             }
         }
 
