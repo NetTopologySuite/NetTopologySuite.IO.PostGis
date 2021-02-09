@@ -19,7 +19,12 @@ namespace NetTopologySuite.IO.PostGis.Test
             // NOTE: insert a valid connection string to a postgis db
             if (kvcc["PostGisConnectionString"] == null)
             {
-                kvcc.Add("PostGisConnectionString", "Host=ivv-t3s.ivv.lan;Port=5432;Database=obe;Integrated Security=true;");
+                string server = TestContext.Parameters.Get("server", "localhost");
+                string port = TestContext.Parameters.Get("port", "5432");
+                string database = TestContext.Parameters.Get("database", "postgis");
+                string user = TestContext.Parameters.Get("user", "postgres");
+                string pwd = TestContext.Parameters.Get("password", "1.Kennwort!");
+                kvcc.Add("PostGisConnectionString", $"Server={server};Port={port};Database={database};user id={user};Password={pwd}");
             }
         }
 
