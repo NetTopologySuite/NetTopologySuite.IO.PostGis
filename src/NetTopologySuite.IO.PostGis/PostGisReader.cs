@@ -259,23 +259,59 @@ namespace NetTopologySuite.IO
             bool receivedZ = receivedOrdinates.HasFlag(Ordinates.Z);
             bool receivedM = receivedOrdinates.HasFlag(Ordinates.M);
 
-            if (factory is PackedCoordinateSequenceFactory packedFactory &&
-                packedFactory.Type == PackedCoordinateSequenceFactory.PackedType.Double &&
-                reader is BiEndianBinaryReader biReader &&
+            if (reader is BiEndianBinaryReader biReader &&
                 biReader.Endianess == ByteOrder.LittleEndian == BitConverter.IsLittleEndian)
             {
-                int dimension = 2;
-                int measure = 0;
-                if (receivedZ)
-                    dimension++;
-                if (receivedM)
+                if (factory is PackedCoordinateSequenceFactory packedFactory &&
+                    packedFactory.Type == PackedCoordinateSequenceFactory.PackedType.Double)
                 {
-                    dimension++;
-                    measure++;
+                    int dimension = 2;
+                    if (receivedZ)
+                        dimension++;
+                    if (receivedM)
+                        dimension++;
+                    byte[] bytes = reader.ReadBytes(8 * numPoints * dimension);
+                    double[] doubles = MemoryMarshal.Cast<byte, double>(bytes).ToArray();
+                    return packedFactory.Create(doubles, dimension, receivedM ? 1 : 0);
                 }
-                byte[] bytes = reader.ReadBytes(8 * numPoints * dimension);
-                double[] doubles = MemoryMarshal.Cast<byte, double>(bytes).ToArray();
-                return packedFactory.Create(doubles, dimension, measure);
+
+                if (factory is RawCoordinateSequenceFactory rawFactory)
+                {
+                    var ordinateGroupMask = Ordinates.XY;
+                    int dimension = 2;
+                    if (receivedZ)
+                    {
+                        dimension++;
+                        ordinateGroupMask |= Ordinates.Z;
+                    }
+
+                    if (receivedM)
+                    {
+                        dimension++;
+                        ordinateGroupMask |= Ordinates.M;
+                    }
+
+                    foreach (var ordinateGroup in rawFactory.OrdinateGroups)
+                    {
+                        if ((ordinateGroup & ordinateGroupMask) != ordinateGroupMask)
+                        {
+                            continue;
+                        }
+
+                        var bytes = new ArraySegment<byte>(reader.ReadBytes(8 * numPoints * dimension));
+                        var xyzm = new[]
+                        {
+                            new CastingMemoryManager<double>(bytes).Memory,
+                        };
+                        var offsets = new (int sourceIndex, int offset)[dimension];
+                        for (int i = 0; i < offsets.Length; i++)
+                        {
+                            offsets[i].offset = i;
+                        }
+
+                        return new RawCoordinateSequence(xyzm, offsets, receivedM ? 1 : 0);
+                    }
+                }
             }
 
             var sequence = factory.Create(numPoints, outputOrdinates);

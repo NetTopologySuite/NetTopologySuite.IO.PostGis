@@ -223,36 +223,54 @@ namespace NetTopologySuite.IO
                 return;
             }
 
-            if (sequence is PackedDoubleCoordinateSequence packedSequence &&
-                byteOrder == ByteOrder.LittleEndian == BitConverter.IsLittleEndian)
+            switch (sequence)
             {
+                case PackedDoubleCoordinateSequence packedSequence when byteOrder == ByteOrder.LittleEndian == BitConverter.IsLittleEndian:
 #if NETSTANDARD2_1
-                writer.Write(MemoryMarshal.AsBytes<double>(packedSequence.GetRawCoordinates()));
+                    writer.Write(MemoryMarshal.AsBytes<double>(packedSequence.GetRawCoordinates()));
 #else
-                writer.Write(MemoryMarshal.AsBytes<double>(packedSequence.GetRawCoordinates()).ToArray());
+                    writer.Write(MemoryMarshal.AsBytes<double>(packedSequence.GetRawCoordinates()).ToArray());
 #endif
-            }
-            else
-            {
-                for (int i = 0; i < length; i++)
-                {
-                    writer.Write(sequence.GetX(i));
-                    writer.Write(sequence.GetY(i));
-                    if (writeZ)
+                break;
+
+                case RawCoordinateSequence rawSequence when rawSequence.HACK_TryGetSingleOrdinateGroup(out var coords, out int[] dimensions):
+                    for (int i = dimensions.Length - 1; i > 0; i--)
                     {
-                        writer.Write(sequence.GetZ(i));
+                        if (dimensions[i] != dimensions[i - 1] + 1)
+                        {
+                            goto default;
+                        }
                     }
 
-                    if (writeM)
+#if NETSTANDARD2_1
+                    writer.Write(MemoryMarshal.AsBytes<double>(coords.Span));
+#else
+                    writer.Write(MemoryMarshal.AsBytes<double>(coords.Span).ToArray());
+#endif
+                    break;
+
+                default:
+                    for (int i = 0; i < length; i++)
                     {
-                        writer.Write(sequence.GetM(i));
+                        writer.Write(sequence.GetX(i));
+                        writer.Write(sequence.GetY(i));
+                        if (writeZ)
+                        {
+                            writer.Write(sequence.GetZ(i));
+                        }
+
+                        if (writeM)
+                        {
+                            writer.Write(sequence.GetM(i));
+                        }
                     }
-                }
+
+                    break;
             }
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="point"></param>
         /// <param name="ordinates"></param>
@@ -281,7 +299,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="lineString"></param>
         /// <param name="ordinates"></param>
@@ -295,7 +313,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="linearRing"></param>
         /// <param name="ordinates"></param>
@@ -468,7 +486,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="geometry"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
@@ -480,7 +498,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="geometry"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
@@ -492,7 +510,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="geometry"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
@@ -504,7 +522,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="geometry"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
@@ -524,7 +542,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="geometry"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
@@ -586,7 +604,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="geometry"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
@@ -597,7 +615,7 @@ namespace NetTopologySuite.IO
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="geometry"></param>
         /// <param name="coordinateSpace">The size needed for each coordinate</param>
