@@ -3,8 +3,8 @@
 PostGis IO module for NTS.   
 | Branch | Status   
 | --- | ---   
-| develop | ![.NET](https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis/workflows/.NET/badge.svg?branch=develop)   
-| [master](https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis/tree/master) | ![.NET](https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis/workflows/.NET/badge.svg?branch=master)   
+| develop | ![.NET](https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis/actions/workflows/dotnet.yml/badge.svg?branch=develop)   
+| [master](https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis/tree/master) | ![.NET](https://github.com/NetTopologySuite/NetTopologySuite.IO.PostGis/actions/workflows/dotnet.yml/badge.svg?branch=master)   
 
 ## Install with NuGet package manager
 
