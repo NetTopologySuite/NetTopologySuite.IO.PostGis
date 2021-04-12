@@ -15,6 +15,7 @@ jobs:
 
     steps:
     - name: PostGis docker image
+      if: ${{ matrix.os == 'ubuntu-latest' }} 
       uses: huaxk/postgis-action@v1
       with:
         # See https://https://hub.docker.com/r/mdillon/postgis for available versions, if it 
