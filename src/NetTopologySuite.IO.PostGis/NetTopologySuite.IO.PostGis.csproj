@@ -16,7 +16,6 @@
     <Authors>NetTopologySuite - Team</Authors>
     <Owners>NetTopologySuite - Team</Owners>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
-    <PackageIconUrl>https://raw.githubusercontent.com/NetTopologySuite/GeoAPI/master/icon.png</PackageIconUrl>
     <Description>This package contains the IO library to cope with PostGis spatial data.</Description>
     <PackageTags>NTS;PostGis</PackageTags>
   </PropertyGroup>
