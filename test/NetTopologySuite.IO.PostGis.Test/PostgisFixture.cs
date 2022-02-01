@@ -171,5 +171,30 @@ namespace NetTopologySuite.IO.PostGis.Test
             // Equality
             Assert.That(postgisWriterBuffer, Is.EqualTo(postgisBuffer));
         }
+
+        [Test]
+        public void TestIssue23()
+        {
+            using (var cn = new NpgsqlConnection(ConnectionString))
+            {
+                cn.Open();
+                using (var cmd = new NpgsqlCommand(@"
+  CREATE TEMP TABLE test 
+  (
+    geometry geometry, 
+    CONSTRAINT enforce_dims CHECK (st_ndims(geometry) = 2)
+  )", cn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+
+                using (var cmd = new NpgsqlCommand("INSERT INTO test (geometry) VALUES (@g)", cn))
+                {
+                    var point = new WKTReader() { IsOldNtsCoordinateSyntaxAllowed = false }.Read("POINT(0 0)");
+                    cmd.Parameters.AddWithValue("@g", new PostGisWriter().Write(point));
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
     }
 }
