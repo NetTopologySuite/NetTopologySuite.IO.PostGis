@@ -16,9 +16,9 @@ namespace NetTopologySuite.IO.PostGis.Test
 
         private void AssertStronglyNamedAssembly(Type typeFromAssemblyToCheck)
         {
-            Assert.IsNotNull(typeFromAssemblyToCheck, "Cannot determine assembly from null");
+            Assert.That(typeFromAssemblyToCheck, Is.Not.Null, "Cannot determine assembly from null");
             var assembly = typeFromAssemblyToCheck.Assembly;
-            StringAssert.DoesNotContain("PublicKeyToken=null", assembly.FullName, "Strongly named assembly should have a PublicKeyToken in fully qualified name");
+            Assert.That(assembly.FullName.Contains("PublicKeyToken=null"), Is.False, "Strongly named assembly should have a PublicKeyToken in fully qualified name");
         }
     }
 }

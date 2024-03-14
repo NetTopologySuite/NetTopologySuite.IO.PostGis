@@ -211,13 +211,13 @@ namespace NetTopologySuite.IO.PostGis.Test
             Geometry gParsed = null;
             Assert.DoesNotThrow(() => gParsed = Read(b), "Threw exception during read:\n{0}", writer.WriteFormatted(gIn));
 
-            Assert.IsNotNull(gParsed, "Could not be parsed\n{0}", gIn);
+            Assert.That(gParsed, Is.Not.Null, $"Could not be parsed\n{gIn}");
             CheckEquality(gIn, gParsed, writer);
         }
 
         protected virtual void CheckEquality(Geometry gIn, Geometry gParsed, WKTWriter writer)
         {
-            Assert.IsTrue(gIn.EqualsExact(gParsed), "Instances are not equal\n{0}\n\n{1}", gIn, gParsed);
+            Assert.That(gIn.EqualsExact(gParsed), Is.True, $"Instances are not equal\n{gIn}\n\n{gParsed}");
         }
 
         protected abstract Geometry Read(byte[] b);

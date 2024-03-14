@@ -155,20 +155,20 @@ namespace NetTopologySuite.IO.PostGis.Test
             geom.SRID = srid;
             regeom.SRID = srid;
 
-            Assert.IsTrue(geom.EqualsExact(regeom));
-            Assert.AreEqual(parsed, reparsed);
+            Assert.That(geom.EqualsExact(regeom), Is.True);
+            Assert.That(reparsed, Is.EqualTo(parsed));
 
             var pgr = new PostGisReader(geomFactory);
             byte[] bytesB = new PostGisWriter(ByteOrder.BigEndian).Write(regeom);
             var regeom2 = pgr.Read(bytesB);
-            Assert.IsTrue(geom.EqualsExact(regeom2));
+            Assert.That(geom.EqualsExact(regeom2), Is.True);
 
             byte[] bytesL = new PostGisWriter(ByteOrder.LittleEndian).Write(regeom);
             var regeom3 = pgr.Read(bytesL);
-            Assert.IsTrue(geom.EqualsExact(regeom3));
-            Assert.IsTrue(regeom2.EqualsExact(regeom3));
+            Assert.That(geom.EqualsExact(regeom3), Is.True);
+            Assert.That(regeom2.EqualsExact(regeom3), Is.True);
 
-            Assert.AreEqual(bytesB.Length, bytesL.Length);
+            Assert.That(bytesB.Length, Is.EqualTo(bytesL.Length));
         }
 
         [Test]
@@ -176,19 +176,19 @@ namespace NetTopologySuite.IO.PostGis.Test
         {
             // Warm up assertions:
             var point2D = new Point(1, 2);
-            Assert.IsTrue(double.IsNaN(point2D.Z));
+            Assert.That(double.IsNaN(point2D.Z), Is.True);
 
             var point3D = new Point(1, 2, 3);
-            Assert.IsFalse(double.IsNaN(point3D.Z));
+            Assert.That(double.IsNaN(point3D.Z), Is.False);
 
             // The real thing:
             var source = new Point(123, 456, 789);
             var pgWriter = new PostGisWriter { HandleOrdinates = Ordinates.XYZ };
             byte[] bytes = pgWriter.Write(source);
             var target = (Point)new PostGisReader().Read(bytes);
-            Assert.AreEqual(source.X, target.X);
-            Assert.AreEqual(source.Y, target.Y);
-            Assert.AreEqual(source.Z, target.Z);
+            Assert.That(source.X, Is.EqualTo(target.X));
+            Assert.That(source.Y, Is.EqualTo(target.Y));
+            Assert.That(source.Z, Is.EqualTo(target.Z));
         }
 
         [Test]
@@ -207,9 +207,9 @@ namespace NetTopologySuite.IO.PostGis.Test
             var target = (LineString)new PostGisReader().Read(bytes);
             for (int i = 0; i < size; i++)
             {
-                Assert.AreEqual(source.Coordinates[i].X, target.Coordinates[i].X);
-                Assert.AreEqual(source.Coordinates[i].Y, target.Coordinates[i].Y);
-                Assert.AreEqual(source.Coordinates[i].Z, target.Coordinates[i].Z);
+                Assert.That(source.Coordinates[i].X, Is.EqualTo(target.Coordinates[i].X));
+                Assert.That(source.Coordinates[i].Y, Is.EqualTo(target.Coordinates[i].Y));
+                Assert.That(source.Coordinates[i].Z, Is.EqualTo(target.Coordinates[i].Z));
             }
         }
 
@@ -223,7 +223,7 @@ namespace NetTopologySuite.IO.PostGis.Test
 
             var target = (GeometryCollection)new PostGisReader().Read(bytes);
 
-            Assert.AreEqual(source.Count, target.Count);
+            Assert.That(source.Count, Is.EqualTo(target.Count));
         }
 
         [Test]
@@ -246,14 +246,40 @@ namespace NetTopologySuite.IO.PostGis.Test
 
         [Test, Combinatorial]
         public void WriteCoordinates(
-            [Values(Ordinates.XY, Ordinates.XYZ, Ordinates.None)] Ordinates writerCoords,
-            [Values(Ordinates.XY, Ordinates.XYZ, Ordinates.None)] Ordinates readerCoords,
-            [Values(Ordinates.XY, Ordinates.XYZ)] Ordinates pointCoords)
+            [Values(Ordinates.XY, Ordinates.XYZ, Ordinates.XYM, Ordinates.XYZM, Ordinates.None)] Ordinates writerCoords,
+            [Values(Ordinates.XY, Ordinates.XYZ, Ordinates.XYM, Ordinates.XYZM, Ordinates.None)] Ordinates readerCoords,
+            [Values(Ordinates.XY, Ordinates.XYZ, Ordinates.XYM, Ordinates.XYZM)] Ordinates pointCoords)
         {
-            var writer = new PostGisWriter { HandleOrdinates = writerCoords };
-            var reader = new PostGisReader { HandleOrdinates = readerCoords };
+            var gf = NtsGeometryServices.Instance.CreateGeometryFactory();
 
-            byte[] bytes = writer.Write(pointCoords ==  Ordinates.XYZ ? new Point(1, 1, 1) : new Point(1, 1));
+            var writer = new PostGisWriter { HandleOrdinates = writerCoords };
+            var reader = new PostGisReader(gf) { HandleOrdinates = readerCoords };
+
+            CoordinateSequence sequence;
+            switch (pointCoords)
+            {
+                case Ordinates.XY:
+                    sequence = gf.CoordinateSequenceFactory.Create(1, 2, 0);
+                    break;
+                case Ordinates.XYZ:
+                    sequence = gf.CoordinateSequenceFactory.Create(1, 3, 0);
+                    break;
+                case Ordinates.XYM:
+                    sequence = gf.CoordinateSequenceFactory.Create(1, 3, 1);
+                    break;
+                case Ordinates.XYZM:
+                    sequence = gf.CoordinateSequenceFactory.Create(1, 4, 1);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(pointCoords));
+            }
+            sequence.SetX(0, 1);
+            sequence.SetY(0, 2);
+            if (sequence.HasZ) sequence.SetZ(0, 3);
+            if (sequence.HasM) sequence.SetZ(0, 4);
+
+            var point = gf.CreatePoint(sequence);
+            byte[] bytes = writer.Write(point);
             var output = (Point)reader.Read(bytes);
 
             var expectedOutputCoords = pointCoords;
