@@ -129,6 +129,11 @@ namespace NetTopologySuite.IO
         /// <returns>A geometry</returns>
         protected Geometry Read(BinaryReader reader)
         {
+            return Read(reader, null);
+        }
+
+        private Geometry Read(BinaryReader reader, GeometryFactory parentFactory)
+        {
             if (!(reader is BiEndianBinaryReader biEndianReader))
             {
                 throw new ArgumentException("Reader must be BiEndianBinaryReader", nameof(reader));
@@ -152,14 +157,25 @@ namespace NetTopologySuite.IO
                 receivedOrdinates |= Ordinates.M;
             }
 
-            int srid = (typeword & 0x20000000) != 0 ? reader.ReadInt32() : - 1;
+            bool hasSrid = (typeword & 0x20000000) != 0;
+            int srid = hasSrid ? reader.ReadInt32() : - 1;
 
-            if (_factory?.SRID != srid)
+            GeometryFactory factory;
+            if (!hasSrid && parentFactory != null)
             {
-                _factory = NtsGeometryServices.Instance.CreateGeometryFactory(_precisionModel, srid, _coordinateSequenceFactory);
+                // Parts of a multi geometry don't carry their own SRID
+                factory = parentFactory;
             }
-
-            var factory = _factory;
+            else
+            {
+                // Read the field once: the reader may be shared between threads
+                factory = _factory;
+                if (factory?.SRID != srid)
+                {
+                    factory = NtsGeometryServices.Instance.CreateGeometryFactory(_precisionModel, srid, _coordinateSequenceFactory);
+                    _factory = factory;
+                }
+            }
 
             Geometry result;
             switch (geometryType)
@@ -346,7 +362,7 @@ namespace NetTopologySuite.IO
         {
             int numRings = reader.ReadInt32();
             if (numRings == 0)
-                return _factory.CreatePolygon(_coordinateSequenceFactory.Create(0, ordinates));
+                return factory.CreatePolygon(_coordinateSequenceFactory.Create(0, ordinates));
 
             var exteriorRing = ReadLinearRing(reader, factory, ordinates);
             var interiorRings = new LinearRing[numRings - 1];
@@ -366,9 +382,15 @@ namespace NetTopologySuite.IO
         protected void ReadGeometryArray<TGeometry>(BinaryReader reader, TGeometry[] container)
             where TGeometry : Geometry
         {
+            ReadGeometryArray(reader, container, null);
+        }
+
+        private void ReadGeometryArray<TGeometry>(BinaryReader reader, TGeometry[] container, GeometryFactory parentFactory)
+            where TGeometry : Geometry
+        {
             for (int i = 0; i < container.Length; i++)
             {
-                container[i] = (TGeometry)Read(reader);
+                container[i] = (TGeometry)Read(reader, parentFactory);
             }
         }
 
@@ -382,7 +404,7 @@ namespace NetTopologySuite.IO
         {
             int numGeometries = reader.ReadInt32();
             var points = new Point[numGeometries];
-            ReadGeometryArray(reader, points);
+            ReadGeometryArray(reader, points, factory);
             return factory.CreateMultiPoint(points);
         }
 
@@ -396,7 +418,7 @@ namespace NetTopologySuite.IO
         {
             int numGeometries = reader.ReadInt32();
             var strings = new LineString[numGeometries];
-            ReadGeometryArray(reader, strings);
+            ReadGeometryArray(reader, strings, factory);
             return factory.CreateMultiLineString(strings);
         }
 
@@ -410,7 +432,7 @@ namespace NetTopologySuite.IO
         {
             int numGeometries = reader.ReadInt32();
             var polygons = new Polygon[numGeometries];
-            ReadGeometryArray(reader, polygons);
+            ReadGeometryArray(reader, polygons, factory);
             return factory.CreateMultiPolygon(polygons);
         }
 
@@ -424,7 +446,7 @@ namespace NetTopologySuite.IO
         {
             int numGeometries = reader.ReadInt32();
             var geometries = new Geometry[numGeometries];
-            ReadGeometryArray(reader, geometries);
+            ReadGeometryArray(reader, geometries, factory);
             return factory.CreateGeometryCollection(geometries);
         }
     }
